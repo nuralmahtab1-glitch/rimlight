@@ -209,8 +209,8 @@ public sealed class LyricsWindow : Window, ILyricsDisplay
         bool wasShown = _shown;
         _shown = shown; _dim = dim;
         if (shown && !IsVisible) { Show(); Reposition(); }
-        var anim = new DoubleAnimation(shown ? (dim ? 0.5 : 1.0) : 0.0, TimeSpan.FromMilliseconds(shown && !wasShown ? 350 : 300))
-        { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } };
+        var anim = new DoubleAnimation(shown ? (dim ? 0.5 : 1.0) : 0.0, TimeSpan.FromMilliseconds(shown && !wasShown ? 1100 : 750))
+        { EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut } };
         if (!shown) anim.Completed += (_, _) => { if (!_shown) Hide(); };
         _root.BeginAnimation(OpacityProperty, anim);
     }

@@ -982,7 +982,9 @@ public sealed class StageWindow : Window, ILyricsDisplay
         _shown = shown; _dim = dim;
         if (shown && !IsVisible) Show();
         if (shown && _pendingIntro is { } pi) { _pendingIntro = null; PictureIntro(pi.Title, pi.Artist); }
-        var anim = new DoubleAnimation(shown ? (dim ? 0.75 : 1) : 0, TimeSpan.FromMilliseconds(600));
+        // Smooth, eased fades: a soft 0.8 s fade-out, a gentler 1.2 s fade back in.
+        var anim = new DoubleAnimation(shown ? (dim ? 0.75 : 1) : 0, TimeSpan.FromMilliseconds(shown ? 1200 : 800))
+        { EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut } };
         // Once faded out, hide the window itself — otherwise its background would stay on screen.
         if (!shown) anim.Completed += (_, _) => { if (!_shown) Hide(); };
         _root.BeginAnimation(OpacityProperty, anim);

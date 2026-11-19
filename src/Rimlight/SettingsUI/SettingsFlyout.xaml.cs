@@ -25,7 +25,8 @@ public partial class SettingsFlyout : Window
         SourceInitialized += (_, _) => ApplyWindowsLook();
         vm.PropertyChanged += (_, e) =>
         {
-            if (e.PropertyName is nameof(SettingsViewModel.LyricsPicturePreview) or nameof(SettingsViewModel.IsPictureStyle) or null)
+            if (e.PropertyName is nameof(SettingsViewModel.LyricsPicturePreview) or nameof(SettingsViewModel.IsPictureStyle)
+                or nameof(SettingsViewModel.LyricsSize) or null)
                 RefreshPlacement();
         };
         Loaded += (_, _) => RefreshPlacement();
@@ -152,24 +153,45 @@ public partial class SettingsFlyout : Window
             }
             catch { PlacementImage.Source = null; }
         }
-        // Auto: show the box on the left, dashed-looking (dimmer) with an "Auto" label.
-        double x = _vm.LyricsBoxAuto ? 0.24 : _vm.LyricsBoxX, y = _vm.LyricsBoxAuto ? 0.5 : _vm.LyricsBoxY;
+        // Auto: the stage puts the box 6% in from the left edge, vertically centred — show exactly that.
+        var (fw, _) = Rimlight.Lyrics.StageWindow.PictureBoxFraction(_vm.LyricsSize);
+        double x = _vm.LyricsBoxAuto ? 0.06 + fw / 2 : _vm.LyricsBoxX, y = _vm.LyricsBoxAuto ? 0.5 : _vm.LyricsBoxY;
         PlaceBox(x, y);
         PlacementBox.Opacity = _vm.LyricsBoxAuto ? 0.6 : 1;
         PlacementLabel.Text = _vm.LyricsBoxAuto ? "Lyrics (auto)" : "Lyrics";
     }
 
+    /// <summary>Sizes the preview like the real screen and the box like the real lyrics block (same math as the stage).</summary>
+    private void SizePreview()
+    {
+        double sw = SystemParameters.PrimaryScreenWidth, sh = SystemParameters.PrimaryScreenHeight;
+        PlacementCanvas.Width = PlacementImage.Width = 292;
+        PlacementCanvas.Height = PlacementImage.Height = Math.Round(292 * sh / sw);
+        var (fw, fh) = Rimlight.Lyrics.StageWindow.PictureBoxFraction(_vm.LyricsSize);
+        PlacementBox.Width = PlacementCanvas.Width * fw;
+        PlacementBox.Height = PlacementCanvas.Height * fh;
+    }
+
+    /// <summary>Clamps a box centre exactly like the stage does (2–98% across, 3–97% down) and returns it.</summary>
+    private (double x, double y) ClampCentre(double fx, double fy)
+    {
+        var (fw, fh) = Rimlight.Lyrics.StageWindow.PictureBoxFraction(_vm.LyricsSize);
+        double left = Math.Clamp(fx - fw / 2, 0.02, 0.98 - fw), top = Math.Clamp(fy - fh / 2, 0.03, 0.97 - fh);
+        return (left + fw / 2, top + fh / 2);
+    }
+
     private void PlaceBox(double fx, double fy)
     {
-        double w = PlacementCanvas.Width, h = PlacementCanvas.Height;
-        Canvas.SetLeft(PlacementBox, Math.Clamp(fx * w - PlacementBox.Width / 2, 0, w - PlacementBox.Width));
-        Canvas.SetTop(PlacementBox, Math.Clamp(fy * h - PlacementBox.Height / 2, 0, h - PlacementBox.Height));
+        SizePreview();
+        var (cx, cy) = ClampCentre(fx, fy);
+        Canvas.SetLeft(PlacementBox, cx * PlacementCanvas.Width - PlacementBox.Width / 2);
+        Canvas.SetTop(PlacementBox, cy * PlacementCanvas.Height - PlacementBox.Height / 2);
     }
 
     private (double x, double y) Fraction(MouseEventArgs e)
     {
         var p = e.GetPosition(PlacementCanvas);
-        return (Math.Clamp(p.X / PlacementCanvas.Width, 0, 1), Math.Clamp(p.Y / PlacementCanvas.Height, 0, 1));
+        return ClampCentre(Math.Clamp(p.X / PlacementCanvas.Width, 0, 1), Math.Clamp(p.Y / PlacementCanvas.Height, 0, 1));
     }
 
     private void Placement_MouseDown(object sender, MouseButtonEventArgs e)

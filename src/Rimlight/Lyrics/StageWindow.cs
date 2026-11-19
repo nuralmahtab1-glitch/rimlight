@@ -43,16 +43,28 @@ public sealed class StageWindow : Window, ILyricsDisplay
     private int _wordsShown;
     private bool _shown, _dim;
     private readonly double _size;
+    private readonly (double W, double H) _boxFrac;
     private int _lineSeed;
 
     /// <summary>Picture style: where the user placed the lyrics box (centre, fractions of the screen), or null = auto.</summary>
     public static Point? PictureBoxPlacement { get; set; }
 
+    /// <summary>Size factor for a 0..100 lyrics Size level (shared with the settings preview).</summary>
+    public static double SizeFactor(double sizeLevel) => 0.7 + 0.6 * Math.Clamp(sizeLevel / 100.0, 0, 1);
+
+    /// <summary>Picture-style lyrics box size as fractions of the screen (width of screen width, height of screen height).</summary>
+    public static (double W, double H) PictureBoxFraction(double sizeLevel)
+    {
+        double s = SizeFactor(sizeLevel);
+        return (0.34 * s, 0.062 * s * 4.2);
+    }
+
     public StageWindow(Look look, bool onTop, double sizeLevel, string? picturePath = null)
     {
         _look = look;
         _onTop = onTop;
-        _size = 0.7 + 0.6 * Math.Clamp(sizeLevel / 100.0, 0, 1);
+        _size = SizeFactor(sizeLevel);
+        _boxFrac = PictureBoxFraction(sizeLevel);
 
         // On top: fill the work area only, so the taskbar stays reachable. Behind apps: the whole screen.
         var wa = SystemParameters.WorkArea;
@@ -338,7 +350,7 @@ public sealed class StageWindow : Window, ILyricsDisplay
         _kPrev.RenderTransform = _prevMove;
         _kCurrent.RenderTransformOrigin = new Point(_textOnRight ? 1 : 0, 0.5);
         _kCurrent.RenderTransform = new TransformGroup { Children = { _curScale, _curTilt, _curMove } };
-        _karaoke.Width = _w * 0.34; // stay well clear of the picture's subject (incl. stray hair/edges)
+        _karaoke.Width = _w * _boxFrac.W; // scales with Size; matches the settings preview box
         _karaoke.HorizontalAlignment = side;
         _karaoke.VerticalAlignment = VerticalAlignment.Center;
         _karaoke.Margin = SideMargin(0, 0);
@@ -352,7 +364,7 @@ public sealed class StageWindow : Window, ILyricsDisplay
         // Manual placement from the settings preview: centre the lyrics box (and its echo) on the chosen spot.
         if (PictureBoxPlacement is { } pos)
         {
-            double boxW = _karaoke.Width, boxH = f * 4.2;
+            double boxW = _karaoke.Width, boxH = _h * _boxFrac.H;
             double left = Math.Clamp(pos.X * _w - boxW / 2, _w * 0.02, _w * 0.98 - boxW);
             double top = Math.Clamp(pos.Y * _h - boxH / 2, _h * 0.03, _h * 0.97 - boxH);
             foreach (var el in new FrameworkElement[] { _karaoke, _kEcho })
@@ -371,7 +383,7 @@ public sealed class StageWindow : Window, ILyricsDisplay
         _introArtist.FontWeight = FontWeights.Light; _introArtist.FontSize = f * 0.5;
         _introTitle.Foreground = _introArtist.Foreground = _kInk;
         _introTitle.TextWrapping = TextWrapping.Wrap;
-        _intro.Width = _w * 0.34; _intro.VerticalAlignment = VerticalAlignment.Center;
+        _intro.Width = _w * _boxFrac.W; _intro.VerticalAlignment = VerticalAlignment.Center;
         if (PictureBoxPlacement is null) { _intro.HorizontalAlignment = side; _intro.Margin = SideMargin(0, 0); }
         _intro.Children.Add(_introArtist);
         _intro.Children.Add(_introTitle);

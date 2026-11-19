@@ -1,0 +1,25 @@
+@page { size: A4; margin: 16mm 16mm 18mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI Variable Text", "Segoe UI", sans-serif; color: #1d1b26; font-size: 11pt; line-height: 1.5; margin: 0; }
+.cover { background: linear-gradient(135deg, #1b1430, #2a1640 55%, #3a1550); color: #fff; border-radius: 16px; padding: 28px 30px; display: flex; gap: 22px; align-items: center; margin-bottom: 22px; }
+.cover img { width: 86px; height: 86px; }
+.cover h1 { margin: 0; font-size: 26pt; letter-spacing: -0.5px; }
+.cover p { margin: 4px 0 0; opacity: .85; font-size: 12pt; }
+.grad { background: linear-gradient(90deg, #ff4fa3, #8a5cff, #22d3ee); -webkit-background-clip: text; color: transparent; }
+h2 { font-size: 15pt; margin: 22px 0 8px; padding-bottom: 4px; border-bottom: 2px solid #ece7f7; }
+h3 { font-size: 12pt; margin: 14px 0 4px; }
+.step { display: flex; gap: 14px; margin: 10px 0; page-break-inside: avoid; }
+.num { flex: none; width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, #ff4fa3, #8a5cff); color: #fff; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.step div p { margin: 2px 0; }
+.box { border-radius: 10px; padding: 10px 14px; margin: 10px 0; page-break-inside: avoid; }
+.tip { background: #eefbfd; border-left: 4px solid #22d3ee; }
+.warn { background: #fff4f8; border-left: 4px solid #ff4fa3; }
+.link { font-family: Consolas, monospace; background: #f3f0fa; padding: 2px 6px; border-radius: 5px; font-size: 10pt; word-break: break-all; }
+kbd { font-family: Consolas, monospace; background: #f3f0fa; border: 1px solid #d9d2ea; border-bottom-width: 2px; border-radius: 5px; padding: 1px 6px; font-size: 9.5pt; }
+table { width: 100%; border-collapse: collapse; margin: 8px 0; page-break-inside: avoid; }
+td, th { text-align: left; padding: 6px 8px; border-bottom: 1px solid #ece7f7; vertical-align: top; }
+th { background: #f6f3fc; font-size: 10pt; }
+.mock { background: #f6f3fc; border: 1px solid #e3dcf2; border-radius: 8px; padding: 8px 12px; font-family: Consolas, monospace; font-size: 9.5pt; white-space: pre; }
+.footer { margin-top: 24px; font-size: 9pt; color: #7a7690; text-align: center; }
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 18px; }
+.pill { display: inline-block; background: #f3f0fa; border-radius: 99px; padding: 1px 9px; margin: 2px 2px; font-size: 9.5pt; }

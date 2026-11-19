@@ -1,4 +1,4 @@
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Interop;
@@ -14,10 +14,10 @@ namespace Rimlight.Lyrics;
 
 /// <summary>
 /// Full-screen lyrics "stage" with three looks:
-///  • Album — the album cover full-screen (drift + zoom, pumps on the beat), giant bold lyrics.
-///  • Picture — your own picture as a living background (drift, sway, floating bokeh, light sweeps) with
+///  â€¢ Album â€” the album cover full-screen (drift + zoom, pumps on the beat), giant bold lyrics.
+///  â€¢ Picture â€” your own picture as a living background (drift, sway, floating bokeh, light sweeps) with
 ///    karaoke lyrics placed in the picture's empty side, so they never cover the subject.
-///  • Constellation — a deep, drifting night sky; each sung word lands as a star (ripple + sparkle burst),
+///  â€¢ Constellation â€” a deep, drifting night sky; each sung word lands as a star (ripple + sparkle burst),
 ///    joined by glowing lines; finished constellations recede into the sky as ghosts; shooting stars.
 /// Runs behind your apps (hardware-rendered, cheap) or on top of everything (transparent, click-through).
 /// </summary>
@@ -434,10 +434,9 @@ public sealed class StageWindow : Window, ILyricsDisplay
     private readonly ScaleTransform _progressScale = new(0, 1);
     private readonly Canvas _fx = new();
     private int _keyIndex = -1;
-    private bool _tiltLeft;
     private string? _introFor;
 
-    /// <summary>The line's "star" word: the longest one (ties → later), ignoring punctuation.</summary>
+    /// <summary>The line's "star" word: the longest one (ties â†’ later), ignoring punctuation.</summary>
     private static int KeyWord(string[] words)
     {
         int best = -1, len = 0;
@@ -456,7 +455,7 @@ public sealed class StageWindow : Window, ILyricsDisplay
 
     /// <summary>
     /// Palette of the picture (OKLab k-means), then pick the two colours that belong to the picture but stand
-    /// furthest from its overall/background colour — so the neon matches the art and still pops off it.
+    /// furthest from its overall/background colour â€” so the neon matches the art and still pops off it.
     /// </summary>
     private void PickNeonFromPicture(BitmapSource img)
     {
@@ -468,7 +467,7 @@ public sealed class StageWindow : Window, ILyricsDisplay
             var palette = Rimlight.Core.Color.PaletteExtractor.FromBgra(px);
             if (palette is null) return;
 
-            // Average colour of the picture ≈ what the neon must stand out against.
+            // Average colour of the picture â‰ˆ what the neon must stand out against.
             double r = 0, g = 0, b = 0; int n = px.Length / 4;
             for (int i = 0; i < px.Length; i += 4) { b += px[i]; g += px[i + 1]; r += px[i + 2]; }
             var avg = Rimlight.Core.Color.OkLab.FromRgb(new Rimlight.Core.Color.Rgb((float)(r / n / 255), (float)(g / n / 255), (float)(b / n / 255)));
@@ -546,7 +545,7 @@ public sealed class StageWindow : Window, ILyricsDisplay
         }
         else
         {
-            var note = new TextBlock { Text = "♪  ♪  ♪", FontFamily = Display, FontSize = f * 0.8, Foreground = _kInk };
+            var note = new TextBlock { Text = "â™ª  â™ª  â™ª", FontFamily = Display, FontSize = f * 0.8, Foreground = _kInk };
             note.BeginAnimation(OpacityProperty, new DoubleAnimation(0.25, 0.85, TimeSpan.FromSeconds(1.1)) { AutoReverse = true, RepeatBehavior = RepeatBehavior.Forever });
             _kCurrent.Children.Add(note);
             _kEcho.BeginAnimation(OpacityProperty, new DoubleAnimation(0, TimeSpan.FromMilliseconds(500)));
@@ -555,8 +554,7 @@ public sealed class StageWindow : Window, ILyricsDisplay
         _kNext.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 0.45, TimeSpan.FromMilliseconds(600)));
 
         // The new line rises in, slightly tilted (alternating each line), and un-blurs.
-        _tiltLeft = !_tiltLeft;
-        _curTilt.BeginAnimation(RotateTransform.AngleProperty, new DoubleAnimation(_tiltLeft ? -3 : 3, _tiltLeft ? -1.2 : 1.2, TimeSpan.FromMilliseconds(500)) { EasingFunction = ease });
+        // (no tilt: lyrics stay level and steady)
         _curMove.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(f * 0.8, 0, TimeSpan.FromMilliseconds(460)) { EasingFunction = ease });
         _kCurrent.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(420)));
         var blur = new BlurEffect { Radius = 10 };
@@ -740,7 +738,7 @@ public sealed class StageWindow : Window, ILyricsDisplay
         _root.Children.Add(_sky);
         NewActiveConstellation();
 
-        // Shooting stars every 6–14 s.
+        // Shooting stars every 6â€“14 s.
         _fxTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(6) };
         _fxTimer.Tick += (_, _) => { ShootingStar(); _fxTimer!.Interval = TimeSpan.FromSeconds(6 + _rng.NextDouble() * 8); };
         _fxTimer.Start();
@@ -779,7 +777,7 @@ public sealed class StageWindow : Window, ILyricsDisplay
     private Point NextStarPosition(int i)
     {
         if (i == 0) return _walk;
-        double angle = (_rng.NextDouble() - 0.5) * Math.PI * 0.75; // ±67° around "east"
+        double angle = (_rng.NextDouble() - 0.5) * Math.PI * 0.75; // Â±67Â° around "east"
         double dist = _w * (0.07 + _rng.NextDouble() * 0.06);
         var p = new Point(_walk.X + Math.Cos(angle) * dist, _walk.Y + Math.Sin(angle) * dist);
         if (p.X > _w * 0.84) p = new Point(_w * (0.2 + _rng.NextDouble() * 0.1), p.Y + _h * 0.16); // wrap
@@ -870,7 +868,7 @@ public sealed class StageWindow : Window, ILyricsDisplay
         tb.Foreground = new SolidColorBrush(Blend(_a, Colors.White, 0.45)) { Opacity = 0.8 };
         Canvas.SetTop(tb, p.Y - f * 1.5);
         Canvas.SetLeft(tb, p.X + 9);
-        // Big diamond → small twinkling sparkle.
+        // Big diamond â†’ small twinkling sparkle.
         var star = new System.Windows.Shapes.Path
         {
             Data = Geometry.Parse("M 5,0 L 6.2,3.8 10,5 6.2,6.2 5,10 3.8,6.2 0,5 3.8,3.8 Z"),
@@ -1024,7 +1022,7 @@ public sealed class StageWindow : Window, ILyricsDisplay
         // Smooth, eased fades: a soft 0.8 s fade-out, a gentler 1.2 s fade back in.
         var anim = new DoubleAnimation(shown ? (dim ? 0.75 : 1) : 0, TimeSpan.FromMilliseconds(shown ? 1200 : 800))
         { EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut } };
-        // Once faded out, hide the window itself — otherwise its background would stay on screen.
+        // Once faded out, hide the window itself â€” otherwise its background would stay on screen.
         if (!shown) anim.Completed += (_, _) => { if (!_shown) Hide(); };
         _root.BeginAnimation(OpacityProperty, anim);
     }
@@ -1034,10 +1032,9 @@ public sealed class StageWindow : Window, ILyricsDisplay
     {
         switch (_look)
         {
-            case Look.Album: _artScale.ScaleX = _artScale.ScaleY = 1.1 + 0.025 * M * flash; break;
+            case Look.Album: Punch(_artScale, 1.1, 0.025 * M, flash); break;
             case Look.Picture:
-                _picScale.ScaleX = _picScale.ScaleY = 1.08 + 0.045 * M * flash * flash; // zoom punch on strong beats
-                _curScale.ScaleX = _curScale.ScaleY = 1 + 0.03 * M * flash;   // lyrics bump on the beat
+                Punch(_picScale, 1.08, 0.04 * M, flash); // smooth zoom punch on strong beats; lyrics stay steady
                 if (_keyIndex >= 0 && _keyIndex < _kCurrent.Children.Count && _kCurrent.Children[_keyIndex] is TextBlock { Effect: DropShadowEffect g })
                     g.BlurRadius = 26 + 22 * flash;                           // star word's neon buzzes
                 if (_particles is not null) _particles.Opacity = 0.65 + 0.35 * flash;
@@ -1048,6 +1045,24 @@ public sealed class StageWindow : Window, ILyricsDisplay
                 if (_orbit is not null) _orbit.Opacity = 0.5 + 0.5 * flash;
                 break;
         }
+    }
+
+    private float _lastFlash;
+
+    /// <summary>
+    /// On a new beat (the flash jumps up), play one smooth eased punch-in-and-settle animation, instead of
+    /// following the 20 Hz beat value directly (which looked like stutter).
+    /// </summary>
+    private void Punch(ScaleTransform t, double rest, double amount, float flash)
+    {
+        bool newBeat = flash > 0.55f && flash > _lastFlash + 0.25f;
+        _lastFlash = flash;
+        if (!newBeat || amount <= 0) return;
+        var a = new DoubleAnimationUsingKeyFrames { Duration = TimeSpan.FromMilliseconds(520) };
+        a.KeyFrames.Add(new EasingDoubleKeyFrame(rest + amount * flash, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(90)), new SineEase { EasingMode = EasingMode.EaseOut }));
+        a.KeyFrames.Add(new EasingDoubleKeyFrame(rest, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(520)), new CubicEase { EasingMode = EasingMode.EaseInOut }));
+        t.BeginAnimation(ScaleTransform.ScaleXProperty, a);
+        t.BeginAnimation(ScaleTransform.ScaleYProperty, a);
     }
 
     public void ShowLine(LyricLine? line, int wordsVisible, LyricLine? next, bool gap)
@@ -1087,7 +1102,7 @@ public sealed class StageWindow : Window, ILyricsDisplay
 
     private void ShowGapNote()
     {
-        var note = new TextBlock { Text = "♪", FontFamily = Display, FontSize = _look == Look.Album ? WordSize : WordSize * 3, Foreground = new SolidColorBrush(_a) };
+        var note = new TextBlock { Text = "â™ª", FontFamily = Display, FontSize = _look == Look.Album ? WordSize : WordSize * 3, Foreground = new SolidColorBrush(_a) };
         note.BeginAnimation(OpacityProperty, new DoubleAnimation(0.25, 0.9, TimeSpan.FromSeconds(1.1)) { AutoReverse = true, RepeatBehavior = RepeatBehavior.Forever });
         if (_look == Look.Album) _current.Children.Add(note);
         else { Canvas.SetLeft(note, _w / 2 - WordSize); Canvas.SetTop(note, _h * 0.42); _active.Children.Add(note); }

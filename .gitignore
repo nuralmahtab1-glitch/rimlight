@@ -1,0 +1,10 @@
+bin/
+obj/
+artifacts/
+dist/
+Releases/
+*.user
+.vs/
+.vscode/
+# Private reference material (videos/screens from the internet) — never published
+reference/

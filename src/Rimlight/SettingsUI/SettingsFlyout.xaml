@@ -1,0 +1,505 @@
+<Window x:Class="Rimlight.SettingsUI.SettingsFlyout"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:Rimlight.SettingsUI"
+        Title="Rimlight" Width="352" SizeToContent="Height"
+        WindowStyle="None" Background="#FF1B1B20"
+        ResizeMode="NoResize" ShowInTaskbar="False" Topmost="True"
+        ShowActivated="True" UseLayoutRounding="True" Left="-10000" Top="-10000">
+
+    <!-- Hardware-rendered window; Windows draws the shadow and (on Windows 11) the rounded corners. -->
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="0" GlassFrameThickness="0,0,0,1" ResizeBorderThickness="0"
+                      CornerRadius="0" UseAeroCaptionButtons="False"/>
+    </WindowChrome.WindowChrome>
+
+    <Window.Resources>
+        <!-- One editable colour: swatch row that expands into wheel + presets + brightness + hex -->
+        <DataTemplate x:Key="ColorEditor" DataType="{x:Type local:ColorEditViewModel}">
+            <StackPanel Margin="0,3">
+                <Button Style="{StaticResource ColorChip}" Command="{Binding ToggleCommand}" HorizontalContentAlignment="Stretch">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Width="26" Height="26" CornerRadius="6" Background="{Binding Brush}"
+                                BorderBrush="#33FFFFFF" BorderThickness="1"/>
+                        <TextBlock Grid.Column="1" Text="{Binding Label}" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="2" Text="{Binding Hex}" Style="{StaticResource SubtleText}"
+                                   FontFamily="Cascadia Mono, Consolas" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <TextBlock Grid.Column="3" Text="&#xE70D;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                   FontSize="10" VerticalAlignment="Center" Foreground="{StaticResource SubtleTextBrush}"/>
+                    </Grid>
+                </Button>
+                <StackPanel Visibility="{Binding IsOpen, Converter={StaticResource BoolToVis}}" Margin="2,10,2,6">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <local:ColorWheel Width="132" Height="132"
+                                          Hue="{Binding Hue, Mode=TwoWay}" Saturation="{Binding Saturation, Mode=TwoWay}"/>
+                        <StackPanel Grid.Column="1" Margin="14,0,0,0" VerticalAlignment="Center">
+                            <ItemsControl ItemsSource="{x:Static local:ColorEditViewModel.Presets}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate><WrapPanel Width="140"/></ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Button Style="{StaticResource SwatchButton}" Background="{Binding}" Margin="0,0,6,6"
+                                                ToolTip="{Binding}" CommandParameter="{Binding}"
+                                                Command="{Binding DataContext.PickPresetCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"/>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <TextBox Style="{StaticResource HexBox}" Margin="0,6,0,0" Width="90" HorizontalAlignment="Left"
+                                     Text="{Binding Hex, UpdateSourceTrigger=LostFocus}" KeyDown="HexBox_KeyDown"
+                                     ToolTip="Type a hex colour, e.g. #FF2E88, then press Enter"/>
+                        </StackPanel>
+                    </Grid>
+                    <Grid Margin="0,10,0,0">
+                        <TextBlock Text="Color brightness" Style="{StaticResource SubtleText}"/>
+                    </Grid>
+                    <Slider Value="{Binding Value}" Margin="0,2,0,0"/>
+                </StackPanel>
+            </StackPanel>
+        </DataTemplate>
+
+        <Style x:Key="Card" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource CardBrush}"/>
+            <Setter Property="CornerRadius" Value="10"/>
+            <Setter Property="Padding" Value="14,8"/>
+        </Style>
+    </Window.Resources>
+
+    <Border Background="#FF1B1B20">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- ============ Header ============ -->
+            <StackPanel Margin="18,16,18,8">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Border Width="30" Height="30" CornerRadius="8" BorderThickness="2.5"
+                            BorderBrush="{Binding GradientBrush}" Background="#15151C"/>
+                    <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="Rimlight" FontSize="15" FontWeight="SemiBold"/>
+                        <TextBlock Text="{Binding StatusText}" Style="{StaticResource SubtleText}" Margin="0,1,0,0"/>
+                    </StackPanel>
+                    <CheckBox Grid.Column="2" Style="{StaticResource ToggleSwitch}" VerticalAlignment="Center"
+                              IsChecked="{Binding Active}" ToolTip="Turn the light on or off (Ctrl+Alt+L)"/>
+                </Grid>
+
+                <!-- Now playing + live audio meter: shows what the app sees and hears -->
+                <Border Style="{StaticResource Card}" Margin="0,12,0,0" Padding="10" ToolTip="{Binding ListeningText}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Width="46" Height="46" CornerRadius="7" Background="#1FFFFFFF">
+                            <Grid>
+                                <TextBlock Text="&#xEC4F;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="18"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                                           Foreground="{StaticResource SubtleTextBrush}"/>
+                                <Border CornerRadius="7"
+                                        Visibility="{Binding HasNowThumb, Converter={StaticResource BoolToVis}}">
+                                    <Border.Background>
+                                        <ImageBrush ImageSource="{Binding NowThumb}" Stretch="UniformToFill"/>
+                                    </Border.Background>
+                                </Border>
+                            </Grid>
+                        </Border>
+                        <StackPanel Grid.Column="1" Margin="11,0,0,0" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding NowTitle}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Text="{Binding NowSubtitle}" Style="{StaticResource SubtleText}"
+                                       TextTrimming="CharacterEllipsis" Margin="0,1,0,0"/>
+                            <Grid Margin="0,7,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid Width="8" Height="8" VerticalAlignment="Center" ToolTip="Flashes on each beat">
+                                    <Ellipse Fill="#33FFFFFF"/>
+                                    <Ellipse Fill="{StaticResource AccentBrush}" Opacity="{Binding BeatFlash}"/>
+                                </Grid>
+                                <Grid Grid.Column="1" Height="4" Margin="8,0,0,0" VerticalAlignment="Center" ToolTip="Bass level">
+                                    <Border CornerRadius="2" Background="{StaticResource TrackBrush}"/>
+                                    <Border CornerRadius="2" Background="{Binding GradientBrush}" RenderTransformOrigin="0,0.5">
+                                        <Border.RenderTransform>
+                                            <ScaleTransform ScaleX="{Binding BassLevel}"/>
+                                        </Border.RenderTransform>
+                                    </Border>
+                                </Grid>
+                            </Grid>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </StackPanel>
+
+            <!-- ============ Scrollable settings ============ -->
+            <ScrollViewer x:Name="Scroller" Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="18,0,12,0"
+                          Margin="0,0,6,0">
+                <StackPanel Margin="0,0,6,0">
+
+                    <!-- MOTION -->
+                    <TextBlock Text="MOTION" Style="{StaticResource SectionHeader}"/>
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <Border Style="{StaticResource SegmentTrack}" Margin="0,4">
+                                <UniformGrid Columns="2">
+                                    <RadioButton Style="{StaticResource Segment}" GroupName="Anim" IsChecked="{Binding IsMusicSync}"
+                                                 ToolTip="The light follows the beat of whatever is playing">Music Sync</RadioButton>
+                                    <RadioButton Style="{StaticResource Segment}" GroupName="Anim" IsChecked="{Binding IsIdle}"
+                                                 ToolTip="Fun light effects that don't need music">Ambient</RadioButton>
+                                </UniformGrid>
+                            </Border>
+
+                            <Grid Style="{StaticResource RowGrid}" Margin="0,8,0,0">
+                                <TextBlock Text="{Binding AmbientLabel}" Style="{StaticResource LabelText}"/>
+                                <Button x:Name="AmbientButton" Style="{StaticResource DropButton}" HorizontalAlignment="Right"
+                                        MinWidth="130" MaxWidth="190" Click="AmbientButton_Click">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{Binding AmbientName}" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Grid.Column="1" Text="&#xE70D;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                                   FontSize="10" Margin="8,0,0,0" VerticalAlignment="Center"
+                                                   Foreground="{StaticResource SubtleTextBrush}"/>
+                                    </Grid>
+                                </Button>
+                            </Grid>
+                            <TextBlock Text="{Binding AmbientDescription}" Style="{StaticResource SubtleText}" FontSize="11"
+                                       TextWrapping="Wrap" Margin="0,0,0,4"/>
+
+                            <StackPanel Visibility="{Binding IsMusicSync, Converter={StaticResource BoolToVis}}">
+                                <Grid Style="{StaticResource RowGrid}" Margin="0,8,0,0">
+                                    <TextBlock Text="Pattern" Style="{StaticResource LabelText}"/>
+                                    <Button x:Name="PatternButton" Style="{StaticResource DropButton}" HorizontalAlignment="Right"
+                                            MinWidth="150" MaxWidth="200" Click="PatternButton_Click">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="{Binding MotionName}" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Grid.Column="1" Text="&#xE70D;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                                       FontSize="10" Margin="8,0,0,0" VerticalAlignment="Center"
+                                                       Foreground="{StaticResource SubtleTextBrush}"/>
+                                        </Grid>
+                                    </Button>
+                                </Grid>
+                                <TextBlock Text="{Binding MotionDescription}" Style="{StaticResource SubtleText}" FontSize="11"
+                                           TextWrapping="Wrap" Margin="0,0,0,4"/>
+                                <Grid Margin="0,6,0,0">
+                                    <TextBlock Text="Beat sensitivity" Style="{StaticResource LabelText}"/>
+                                    <TextBlock Text="{Binding BeatSensitivity, StringFormat={}{0:0}}" HorizontalAlignment="Right"
+                                               Style="{StaticResource SubtleText}"/>
+                                </Grid>
+                                <Slider Value="{Binding BeatSensitivity}" Margin="0,2,0,4"
+                                        ToolTip="Higher reacts to more beats; lower only to the strongest ones"/>
+                            </StackPanel>
+
+                            <Grid Style="{StaticResource RowGrid}">
+                                <TextBlock Text="Gentle breathing when quiet" Style="{StaticResource LabelText}"/>
+                                <CheckBox Style="{StaticResource ToggleSwitch}" HorizontalAlignment="Right"
+                                          IsChecked="{Binding IdleBreathing}"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- COLORS -->
+                    <TextBlock Text="COLORS" Style="{StaticResource SectionHeader}"/>
+                    <Border Style="{StaticResource Card}" Padding="10,10">
+                        <StackPanel>
+                            <TextBlock Text="{Binding ColorSourceText}" Style="{StaticResource SubtleText}" Margin="4,0,4,6"/>
+                            <Grid Margin="4,0,4,6">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Border Height="8" CornerRadius="4" Background="{Binding GradientBrush}" VerticalAlignment="Center"/>
+                                <Button Grid.Column="1" Style="{StaticResource FlatButton}" Padding="8,3" Margin="10,0,0,0"
+                                        Command="{Binding SwapColorsCommand}" ToolTip="Swap primary and secondary">
+                                    <TextBlock Text="&#xE8AB;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="12"/>
+                                </Button>
+                            </Grid>
+                            <Grid Style="{StaticResource RowGrid}" Margin="4,0,4,8">
+                                <TextBlock Text="Album colors" Style="{StaticResource LabelText}"
+                                           ToolTip="How many colors to take from the album cover"/>
+                                <Border Style="{StaticResource SegmentTrack}" HorizontalAlignment="Right" Width="176">
+                                    <UniformGrid Columns="4">
+                                        <RadioButton Style="{StaticResource Segment}" GroupName="ColCount" IsChecked="{Binding IsColorsAuto}"
+                                                     ToolTip="As many as the cover really has (up to 4)">Auto</RadioButton>
+                                        <RadioButton Style="{StaticResource Segment}" GroupName="ColCount" IsChecked="{Binding IsColors2}">2</RadioButton>
+                                        <RadioButton Style="{StaticResource Segment}" GroupName="ColCount" IsChecked="{Binding IsColors3}">3</RadioButton>
+                                        <RadioButton Style="{StaticResource Segment}" GroupName="ColCount" IsChecked="{Binding IsColors4}">4</RadioButton>
+                                    </UniformGrid>
+                                </Border>
+                            </Grid>
+                            <TextBlock Text="Your colors (used when there's no album art)" Style="{StaticResource SubtleText}"
+                                       FontSize="11" Margin="4,0,4,4"/>
+                            <ContentControl Content="{Binding Primary}" ContentTemplate="{StaticResource ColorEditor}"/>
+                            <ContentControl Content="{Binding Secondary}" ContentTemplate="{StaticResource ColorEditor}"/>
+                            <Grid Style="{StaticResource RowGrid}" Margin="4,8,4,2">
+                                <StackPanel Margin="0,0,56,0">
+                                    <TextBlock Text="Always use my colors" Style="{StaticResource LabelText}"/>
+                                    <TextBlock Text="When off, the light takes its colors from the album art of the song that's playing"
+                                               Style="{StaticResource SubtleText}" FontSize="11" Margin="0,1,0,0" TextWrapping="Wrap"/>
+                                </StackPanel>
+                                <CheckBox Style="{StaticResource ToggleSwitch}" HorizontalAlignment="Right"
+                                          IsChecked="{Binding OverrideAlbumColor}"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- LYRICS -->
+                    <TextBlock Text="LYRICS" Style="{StaticResource SectionHeader}"/>
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <Grid Style="{StaticResource RowGrid}">
+                                <StackPanel Margin="0,0,56,0">
+                                    <TextBlock Text="Show lyrics" Style="{StaticResource LabelText}"/>
+                                    <TextBlock Text="{Binding LyricsStatus}" Style="{StaticResource SubtleText}" FontSize="11"
+                                               TextWrapping="Wrap"/>
+                                </StackPanel>
+                                <CheckBox Style="{StaticResource ToggleSwitch}" HorizontalAlignment="Right" IsChecked="{Binding ShowLyrics}"/>
+                            </Grid>
+                            <StackPanel Visibility="{Binding ShowLyrics, Converter={StaticResource BoolToVis}}">
+                                <Grid Style="{StaticResource RowGrid}">
+                                    <TextBlock Text="Style" Style="{StaticResource LabelText}"/>
+                                    <Button x:Name="LyricsStyleButton" Style="{StaticResource DropButton}" HorizontalAlignment="Right"
+                                            MinWidth="150" MaxWidth="200" Click="LyricsStyleButton_Click">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="{Binding LyricsStyleName}" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Grid.Column="1" Text="&#xE70D;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                                       FontSize="10" Margin="8,0,0,0" VerticalAlignment="Center"
+                                                       Foreground="{StaticResource SubtleTextBrush}"/>
+                                        </Grid>
+                                    </Button>
+                                </Grid>
+                                <Grid Margin="0,0,0,4">
+                                    <TextBlock Text="{Binding LyricsStyleDescription}" Style="{StaticResource SubtleText}" FontSize="11"
+                                               TextWrapping="Wrap" Margin="0,0,80,0" VerticalAlignment="Center"/>
+                                    <Button Content="Preview" Style="{StaticResource FlatButton}" Padding="10,3" HorizontalAlignment="Right"
+                                            Click="PreviewLyrics_Click" ToolTip="Show this style with sample lyrics"/>
+                                </Grid>
+                                <Grid Style="{StaticResource RowGrid}" Visibility="{Binding IsPictureStyle, Converter={StaticResource BoolToVis}}">
+                                    <StackPanel Margin="0,0,110,0">
+                                        <TextBlock Text="Picture" Style="{StaticResource LabelText}"/>
+                                        <TextBlock Text="{Binding LyricsPictureName}" Style="{StaticResource SubtleText}" FontSize="11"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                        <Button Content="Choose…" Style="{StaticResource FlatButton}" Padding="10,4" Click="ChoosePicture_Click"/>
+                                        <Button Content="Reset" Style="{StaticResource FlatButton}" Padding="8,4" Margin="6,0,0,0"
+                                                Click="ResetPicture_Click" ToolTip="Back to the default picture"/>
+                                    </StackPanel>
+                                </Grid>
+                                <Grid Style="{StaticResource RowGrid}" Visibility="{Binding IsStageStyle, Converter={StaticResource BoolToVis}}">
+                                    <StackPanel Margin="0,0,56,0">
+                                        <TextBlock Text="Show on top of windows" Style="{StaticResource LabelText}"/>
+                                        <TextBlock Text="Off: it's your live desktop wallpaper, behind your apps. On: party mode, over everything."
+                                                   Style="{StaticResource SubtleText}" FontSize="11" TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                    <CheckBox Style="{StaticResource ToggleSwitch}" HorizontalAlignment="Right" IsChecked="{Binding LyricsOnTop}"/>
+                                </Grid>
+                                <Grid Style="{StaticResource RowGrid}" Visibility="{Binding LyricsPlacementVisible, Converter={StaticResource BoolToVis}}">
+                                    <TextBlock Text="Position" Style="{StaticResource LabelText}"/>
+                                    <Border Style="{StaticResource SegmentTrack}" HorizontalAlignment="Right" Width="190">
+                                        <UniformGrid Columns="3">
+                                            <RadioButton Style="{StaticResource Segment}" GroupName="LyrPos" IsChecked="{Binding IsLyricsTop}">Top</RadioButton>
+                                            <RadioButton Style="{StaticResource Segment}" GroupName="LyrPos" IsChecked="{Binding IsLyricsMiddle}">Middle</RadioButton>
+                                            <RadioButton Style="{StaticResource Segment}" GroupName="LyrPos" IsChecked="{Binding IsLyricsBottom}">Bottom</RadioButton>
+                                        </UniformGrid>
+                                    </Border>
+                                </Grid>
+                                <Grid Style="{StaticResource RowGrid}">
+                                    <StackPanel Margin="0,0,56,0">
+                                        <TextBlock Text="Hide lyrics when I use the mouse" Style="{StaticResource LabelText}"/>
+                                        <TextBlock Text="They come back by themselves after 10 seconds of not touching the mouse or keyboard."
+                                                   Style="{StaticResource SubtleText}" FontSize="11" TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                    <CheckBox Style="{StaticResource ToggleSwitch}" HorizontalAlignment="Right" IsChecked="{Binding HideLyricsWhileUsingPc}"/>
+                                </Grid>
+                                <Grid Style="{StaticResource RowGrid}">
+                                    <StackPanel Margin="0,0,56,0">
+                                        <TextBlock Text="Hide taskbar while lyrics show" Style="{StaticResource LabelText}"/>
+                                        <TextBlock Text="It comes back when lyrics stop. Move the mouse to the bottom edge to reach it any time."
+                                                   Style="{StaticResource SubtleText}" FontSize="11" TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                    <CheckBox Style="{StaticResource ToggleSwitch}" HorizontalAlignment="Right" IsChecked="{Binding HideTaskbarWithLyrics}"/>
+                                </Grid>
+                                <Grid Margin="0,6,0,0">
+                                    <TextBlock Text="Size" Style="{StaticResource LabelText}"/>
+                                    <TextBlock Text="{Binding LyricsSize, StringFormat={}{0:0}}" HorizontalAlignment="Right" Style="{StaticResource SubtleText}"/>
+                                </Grid>
+                                <Slider Value="{Binding LyricsSize}" Margin="0,2,0,4"/>
+                                <TextBlock Style="{StaticResource SubtleText}" FontSize="10.5" TextWrapping="Wrap" Margin="0,2,0,2"
+                                           Text="Lyrics come from LRCLIB (lrclib.net). Only the song name, artist, album and length are sent."/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- LIGHT -->
+                    <TextBlock Text="LIGHT" Style="{StaticResource SectionHeader}"/>
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <Grid Style="{StaticResource RowGrid}">
+                                <TextBlock Text="Display" Style="{StaticResource LabelText}"/>
+                                <Button x:Name="DisplayButton" Style="{StaticResource DropButton}" HorizontalAlignment="Right"
+                                        MinWidth="150" MaxWidth="200" Click="DisplayButton_Click">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{Binding DisplayName}" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Grid.Column="1" Text="&#xE70D;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                                   FontSize="10" Margin="8,0,0,0" VerticalAlignment="Center"
+                                                   Foreground="{StaticResource SubtleTextBrush}"/>
+                                    </Grid>
+                                </Button>
+                            </Grid>
+
+                            <Grid Margin="0,8,0,0">
+                                <TextBlock Text="Thickness" Style="{StaticResource LabelText}"/>
+                                <TextBlock Text="{Binding Thickness, StringFormat={}{0:0}}" HorizontalAlignment="Right" Style="{StaticResource SubtleText}"/>
+                            </Grid>
+                            <Slider Value="{Binding Thickness}" Margin="0,2,0,6"/>
+
+                            <Grid>
+                                <TextBlock Text="Glow" Style="{StaticResource LabelText}"/>
+                                <TextBlock Text="{Binding Glow, StringFormat={}{0:0}}" HorizontalAlignment="Right" Style="{StaticResource SubtleText}"/>
+                            </Grid>
+                            <Slider Value="{Binding Glow}" Margin="0,2,0,6"/>
+
+                            <Grid>
+                                <TextBlock Text="Brightness" Style="{StaticResource LabelText}"/>
+                                <TextBlock Text="{Binding Brightness, StringFormat={}{0:0}}" HorizontalAlignment="Right" Style="{StaticResource SubtleText}"/>
+                            </Grid>
+                            <Slider Value="{Binding Brightness}" Margin="0,2,0,6"/>
+
+                            <Grid>
+                                <TextBlock Text="Corner radius" Style="{StaticResource LabelText}"/>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                    <TextBlock Text="Auto" Style="{StaticResource SubtleText}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <CheckBox Style="{StaticResource ToggleSwitch}" IsChecked="{Binding CornerRadiusAuto}"
+                                              ToolTip="Rounded on laptop screens, square on monitors"/>
+                                </StackPanel>
+                            </Grid>
+                            <Slider Value="{Binding CornerRadius}" Margin="0,4,0,6" IsEnabled="{Binding CornerRadiusManual}">
+                                <Slider.Style>
+                                    <Style TargetType="Slider" BasedOn="{StaticResource {x:Type Slider}}">
+                                        <Style.Triggers>
+                                            <Trigger Property="IsEnabled" Value="False">
+                                                <Setter Property="Opacity" Value="0.35"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Slider.Style>
+                            </Slider>
+
+                            <Grid Style="{StaticResource RowGrid}">
+                                <StackPanel Margin="0,0,56,0">
+                                    <TextBlock Text="Avoid taskbar" Style="{StaticResource LabelText}"/>
+                                    <TextBlock Text="Keep the bottom edge above the taskbar" Style="{StaticResource SubtleText}" FontSize="11" TextWrapping="Wrap"/>
+                                </StackPanel>
+                                <CheckBox Style="{StaticResource ToggleSwitch}" HorizontalAlignment="Right" IsChecked="{Binding AvoidTaskbar}"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- GENERAL -->
+                    <TextBlock Text="GENERAL" Style="{StaticResource SectionHeader}"/>
+                    <Border Style="{StaticResource Card}" Margin="0,0,0,8">
+                        <StackPanel>
+                            <Grid Style="{StaticResource RowGrid}">
+                                <TextBlock Text="Music app" Style="{StaticResource LabelText}"
+                                           ToolTip="Which app's song and album colors to follow"/>
+                                <Button x:Name="PlayerButton" Style="{StaticResource DropButton}" HorizontalAlignment="Right"
+                                        MinWidth="120" MaxWidth="190" Click="PlayerButton_Click">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{Binding PreferredPlayerName}" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Grid.Column="1" Text="&#xE70D;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                                   FontSize="10" Margin="8,0,0,0" VerticalAlignment="Center"
+                                                   Foreground="{StaticResource SubtleTextBrush}"/>
+                                    </Grid>
+                                </Button>
+                            </Grid>
+                            <Grid Style="{StaticResource RowGrid}">
+                                <TextBlock Text="Launch at login" Style="{StaticResource LabelText}"/>
+                                <CheckBox Style="{StaticResource ToggleSwitch}" HorizontalAlignment="Right" IsChecked="{Binding LaunchAtLogin}"/>
+                            </Grid>
+                            <Grid Style="{StaticResource RowGrid}">
+                                <StackPanel Margin="0,0,56,0">
+                                    <TextBlock Text="Hide during full-screen apps" Style="{StaticResource LabelText}"/>
+                                    <TextBlock Text="Full-screen videos, games and presentations" Style="{StaticResource SubtleText}"
+                                               FontSize="11" TextWrapping="Wrap"/>
+                                </StackPanel>
+                                <CheckBox Style="{StaticResource ToggleSwitch}" HorizontalAlignment="Right" IsChecked="{Binding HideOnFullscreen}"/>
+                            </Grid>
+                            <TextBlock Text="Shortcuts (work anywhere)" Style="{StaticResource SubtleText}" FontSize="11" Margin="0,6,0,2"/>
+                            <Grid Style="{StaticResource RowGrid}">
+                                <TextBlock Text="Light on/off" Style="{StaticResource LabelText}"/>
+                                <Border HorizontalAlignment="Right" Background="#1FFFFFFF" CornerRadius="5" Padding="8,3">
+                                    <TextBlock Text="{Binding Hotkey}" FontFamily="Cascadia Mono, Consolas" FontSize="12"/>
+                                </Border>
+                            </Grid>
+                            <Grid Style="{StaticResource RowGrid}">
+                                <TextBlock Text="Lyrics on/off" Style="{StaticResource LabelText}"/>
+                                <Border HorizontalAlignment="Right" Background="#1FFFFFFF" CornerRadius="5" Padding="8,3">
+                                    <TextBlock Text="Ctrl+Alt+K" FontFamily="Cascadia Mono, Consolas" FontSize="12"/>
+                                </Border>
+                            </Grid>
+                            <Grid Style="{StaticResource RowGrid}">
+                                <TextBlock Text="Open Rimlight" Style="{StaticResource LabelText}"/>
+                                <Border HorizontalAlignment="Right" Background="#1FFFFFFF" CornerRadius="5" Padding="8,3">
+                                    <TextBlock Text="Ctrl+Alt+O" FontFamily="Cascadia Mono, Consolas" FontSize="12"/>
+                                </Border>
+                            </Grid>
+                            <Grid Style="{StaticResource RowGrid}">
+                                <TextBlock Text="Reset look to defaults" Style="{StaticResource LabelText}"/>
+                                <Button Style="{StaticResource FlatButton}" HorizontalAlignment="Right" Padding="10,4"
+                                        Content="Reset" Command="{Binding ResetLookCommand}"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- ============ Footer ============ -->
+            <Grid Grid.Row="2" Margin="18,6,18,14">
+                <TextBlock VerticalAlignment="Center" Style="{StaticResource SubtleText}">
+                    <Run Text="Rimlight"/> <Run Text="{Binding Version, Mode=OneWay}"/>
+                </TextBlock>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Content="Open logs" Style="{StaticResource FlatButton}" Padding="10,5" Margin="0,0,6,0"
+                            Click="OpenLogs_Click" ToolTip="Open the folder with Rimlight's log files (to send if something breaks)"/>
+                    <Button Content="Quit" Style="{StaticResource FlatButton}" Padding="12,5" Click="Quit_Click"/>
+                </StackPanel>
+            </Grid>
+        </Grid>
+    </Border>
+</Window>

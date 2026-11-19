@@ -49,6 +49,13 @@ public sealed class StageWindow : Window, ILyricsDisplay
     /// <summary>Picture style: where the user placed the lyrics box (centre, fractions of the screen), or null = auto.</summary>
     public static Point? PictureBoxPlacement { get; set; }
 
+    /// <summary>Background motion multiplier (0 = still, 1 = default, 1.5 = extra). Set before creating a stage.</summary>
+    public static double MotionFactor { get; set; } = 1;
+    private static double M => MotionFactor;
+
+    public static double MotionFromLevel(double level) =>
+        level <= 50 ? Math.Max(0, level) / 50.0 : 1 + (Math.Min(100, level) - 50) / 100.0;
+
     /// <summary>Size factor for a 0..100 lyrics Size level (shared with the settings preview).</summary>
     public static double SizeFactor(double sizeLevel) => 0.7 + 0.6 * Math.Clamp(sizeLevel / 100.0, 0, 1);
 
@@ -152,7 +159,7 @@ public sealed class StageWindow : Window, ILyricsDisplay
             }, 90),
         });
         _root.Children.Add(new Border { Background = new RadialGradientBrush(Colors.Transparent, Color.FromArgb(0x90, 0, 0, 0)) { RadiusX = 0.75, RadiusY = 0.75 } });
-        Drift(_artMove, _w * 0.025, _h * 0.02, 23, 31);
+        Drift(_artMove, _w * 0.025 * M, _h * 0.02 * M, 23, 31);
 
         double f = WordSize;
         var textGrid = new Grid { Children = { _current, _outgoing } };
@@ -246,8 +253,8 @@ public sealed class StageWindow : Window, ILyricsDisplay
         RenderOptions.SetBitmapScalingMode(pic, BitmapScalingMode.HighQuality);
         pic.RenderTransform = new TransformGroup { Children = { _picScale, _picRot, _picMove } };
         _root.Children.Add(pic);
-        Drift(_picMove, _w * 0.018, _h * 0.014, 27, 35);
-        _picRot.BeginAnimation(RotateTransform.AngleProperty, Loop(-0.6, 0.6, 19));
+        Drift(_picMove, _w * 0.018 * M, _h * 0.014 * M, 27, 35);
+        _picRot.BeginAnimation(RotateTransform.AngleProperty, Loop(-0.6 * M, 0.6 * M, 19));
 
         // Colour tie-in with the music + a soft vignette.
         _root.Children.Add(_picTint);
@@ -1027,10 +1034,10 @@ public sealed class StageWindow : Window, ILyricsDisplay
     {
         switch (_look)
         {
-            case Look.Album: _artScale.ScaleX = _artScale.ScaleY = 1.1 + 0.025 * flash; break;
+            case Look.Album: _artScale.ScaleX = _artScale.ScaleY = 1.1 + 0.025 * M * flash; break;
             case Look.Picture:
-                _picScale.ScaleX = _picScale.ScaleY = 1.08 + 0.045 * flash * flash; // zoom punch on strong beats
-                _curScale.ScaleX = _curScale.ScaleY = 1 + 0.03 * flash;       // lyrics bump on the beat
+                _picScale.ScaleX = _picScale.ScaleY = 1.08 + 0.045 * M * flash * flash; // zoom punch on strong beats
+                _curScale.ScaleX = _curScale.ScaleY = 1 + 0.03 * M * flash;   // lyrics bump on the beat
                 if (_keyIndex >= 0 && _keyIndex < _kCurrent.Children.Count && _kCurrent.Children[_keyIndex] is TextBlock { Effect: DropShadowEffect g })
                     g.BlurRadius = 26 + 22 * flash;                           // star word's neon buzzes
                 if (_particles is not null) _particles.Opacity = 0.65 + 0.35 * flash;

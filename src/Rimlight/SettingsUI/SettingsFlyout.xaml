@@ -335,6 +335,15 @@
                                         </Canvas>
                                     </Border>
                                 </StackPanel>
+                                <StackPanel Visibility="{Binding IsStageStyle, Converter={StaticResource BoolToVis}}" Margin="0,2,0,4">
+                                    <Grid>
+                                        <TextBlock Text="Background motion" Style="{StaticResource LabelText}"
+                                                   ToolTip="How much the background drifts, sways and punches on the beat"/>
+                                        <TextBlock Text="{Binding BackgroundMotion, StringFormat={}{0:0}}" HorizontalAlignment="Right" Style="{StaticResource SubtleText}"/>
+                                    </Grid>
+                                    <Slider Value="{Binding BackgroundMotion, Delay=400}" Margin="0,2,0,0"/>
+                                    <TextBlock Text="0 = perfectly still · 50 = default · 100 = extra lively" Style="{StaticResource SubtleText}" FontSize="11"/>
+                                </StackPanel>
                                 <Grid Style="{StaticResource RowGrid}" Visibility="{Binding IsStageStyle, Converter={StaticResource BoolToVis}}">
                                     <StackPanel Margin="0,0,56,0">
                                         <TextBlock Text="Show on top of windows" Style="{StaticResource LabelText}"/>

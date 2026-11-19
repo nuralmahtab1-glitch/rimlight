@@ -304,6 +304,8 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
     /// <summary>The picture actually used (yours or the default), for the placement preview.</summary>
     public string LyricsPicturePreview => string.IsNullOrWhiteSpace(_s.LyricsPicture) ? Rimlight.Lyrics.LyricsController.DefaultPicture : _s.LyricsPicture;
 
+    public double BackgroundMotion { get => _s.BackgroundMotion; set => Set(_s.BackgroundMotion, value, v => _s.BackgroundMotion = v); }
+
     public double LyricsBoxX => _s.LyricsBoxX;
     public double LyricsBoxY => _s.LyricsBoxY;
     public bool LyricsBoxAuto => _s.LyricsBoxX < 0;

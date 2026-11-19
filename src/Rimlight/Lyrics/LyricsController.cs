@@ -72,8 +72,9 @@ public sealed class LyricsController : IDisposable
         {
             string pic = string.IsNullOrWhiteSpace(s.LyricsPicture) ? DefaultPicture : s.LyricsPicture;
             StageWindow.PictureBoxPlacement = s.LyricsBoxX < 0 ? null : new System.Windows.Point(s.LyricsBoxX, s.LyricsBoxY);
-            string placeKey = s.LyricsBoxX < 0 ? "auto" : $"{s.LyricsBoxX:0.00},{s.LyricsBoxY:0.00}";
-            var key = (l, s.LyricsOnTop, Math.Round(s.LyricsSize), l == StageWindow.Look.Picture ? pic + "|" + placeKey : "");
+            StageWindow.MotionFactor = StageWindow.MotionFromLevel(s.BackgroundMotion);
+            string placeKey = (s.LyricsBoxX < 0 ? "auto" : $"{s.LyricsBoxX:0.00},{s.LyricsBoxY:0.00}") + $"|m{Math.Round(s.BackgroundMotion)}";
+            var key = (l, s.LyricsOnTop, Math.Round(s.LyricsSize), (l == StageWindow.Look.Picture ? pic : "") + "|" + placeKey);
             if (_stageKey != key)
             {
                 // Recreate: transparency/wallpaper mode can only be chosen when a window is created.

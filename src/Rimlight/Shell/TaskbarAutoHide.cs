@@ -23,8 +23,9 @@ public static class TaskbarAutoHide
     private const uint ABM_GETSTATE = 4, ABM_SETSTATE = 10;
     private const int ABS_AUTOHIDE = 1;
 
+    // Kept in Roaming AppData: the installer replaces %LOCALAPPDATA%\Rimlight on every update.
     private static readonly string Marker = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Rimlight", "taskbar-autohide-by-rimlight");
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Rimlight", "taskbar-autohide-by-rimlight");
 
     private static bool _active;
     private static System.Windows.Threading.DispatcherTimer? _keepHidden;
@@ -103,6 +104,21 @@ public static class TaskbarAutoHide
         catch (Exception ex) { Log.Warn($"Taskbar auto-hide failed: {ex.Message}"); }
     }
 
+    /// <summary>For installer hooks (update/uninstall): give the taskbar back unconditionally.</summary>
+    public static void ForceRestore()
+    {
+        try
+        {
+            HideWindows(false);
+            if (File.Exists(Marker))
+            {
+                if (File.ReadAllText(Marker).Trim() != "user") SetAutoHide(false);
+                File.Delete(Marker);
+            }
+        }
+        catch { }
+    }
+
     private static void KeepHidden(object? sender, EventArgs e)
     {
         if (_active) HideWindows(true);
@@ -113,6 +129,8 @@ public static class TaskbarAutoHide
     {
         try
         {
+            // Always make sure the taskbar windows are visible at start (Rimlight is the only thing that hides them).
+            HideWindows(false);
             if (!File.Exists(Marker)) return;
             HideWindows(false);
             if (File.ReadAllText(Marker).Trim() != "user") SetAutoHide(false);

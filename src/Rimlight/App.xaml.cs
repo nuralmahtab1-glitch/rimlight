@@ -40,7 +40,11 @@ public partial class App : Application
     {
         // Velopack install/update/uninstall hooks must run before anything else.
         // A downloaded update is applied automatically on the next start.
-        Velopack.VelopackApp.Build().Run();
+        // Before an update or uninstall closes Rimlight, give the taskbar back.
+        Velopack.VelopackApp.Build()
+            .OnBeforeUpdateFastCallback(_ => TaskbarAutoHide.ForceRestore())
+            .OnBeforeUninstallFastCallback(_ => TaskbarAutoHide.ForceRestore())
+            .Run();
     }
 
     private readonly Updater _updater = new();

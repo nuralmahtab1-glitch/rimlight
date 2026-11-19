@@ -23,6 +23,12 @@ public partial class SettingsFlyout : Window
         Deactivated += (_, _) => { if (!_menuOpen) HideFlyout(); };
         PreviewKeyDown += (_, e) => { if (e.Key == Key.Escape) HideFlyout(); };
         SourceInitialized += (_, _) => ApplyWindowsLook();
+        vm.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName is nameof(SettingsViewModel.LyricsPicturePreview) or nameof(SettingsViewModel.IsPictureStyle) or null)
+                RefreshPlacement();
+        };
+        Loaded += (_, _) => RefreshPlacement();
     }
 
     [System.Runtime.InteropServices.DllImport("dwmapi.dll")]
@@ -117,6 +123,86 @@ public partial class SettingsFlyout : Window
     }
 
     private void ResetPicture_Click(object sender, RoutedEventArgs e) => _vm.LyricsPicture = "";
+
+    // ---------------------------------------------------------------- lyrics placement preview
+
+    private bool _dragging;
+    private string? _previewFor;
+
+    private void RefreshPlacement()
+    {
+        var path = _vm.LyricsPicturePreview;
+        if (path != _previewFor)
+        {
+            _previewFor = path;
+            try
+            {
+                if (File.Exists(path))
+                {
+                    var bmp = new System.Windows.Media.Imaging.BitmapImage();
+                    bmp.BeginInit();
+                    bmp.UriSource = new Uri(path);
+                    bmp.DecodePixelWidth = 400;
+                    bmp.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
+                    bmp.EndInit();
+                    bmp.Freeze();
+                    PlacementImage.Source = bmp;
+                }
+                else PlacementImage.Source = null;
+            }
+            catch { PlacementImage.Source = null; }
+        }
+        // Auto: show the box on the left, dashed-looking (dimmer) with an "Auto" label.
+        double x = _vm.LyricsBoxAuto ? 0.24 : _vm.LyricsBoxX, y = _vm.LyricsBoxAuto ? 0.5 : _vm.LyricsBoxY;
+        PlaceBox(x, y);
+        PlacementBox.Opacity = _vm.LyricsBoxAuto ? 0.6 : 1;
+        PlacementLabel.Text = _vm.LyricsBoxAuto ? "Lyrics (auto)" : "Lyrics";
+    }
+
+    private void PlaceBox(double fx, double fy)
+    {
+        double w = PlacementCanvas.Width, h = PlacementCanvas.Height;
+        Canvas.SetLeft(PlacementBox, Math.Clamp(fx * w - PlacementBox.Width / 2, 0, w - PlacementBox.Width));
+        Canvas.SetTop(PlacementBox, Math.Clamp(fy * h - PlacementBox.Height / 2, 0, h - PlacementBox.Height));
+    }
+
+    private (double x, double y) Fraction(MouseEventArgs e)
+    {
+        var p = e.GetPosition(PlacementCanvas);
+        return (Math.Clamp(p.X / PlacementCanvas.Width, 0, 1), Math.Clamp(p.Y / PlacementCanvas.Height, 0, 1));
+    }
+
+    private void Placement_MouseDown(object sender, MouseButtonEventArgs e)
+    {
+        _dragging = true;
+        PlacementCanvas.CaptureMouse();
+        var (x, y) = Fraction(e);
+        PlaceBox(x, y);
+        PlacementBox.Opacity = 1;
+        PlacementLabel.Text = "Lyrics";
+    }
+
+    private void Placement_MouseMove(object sender, MouseEventArgs e)
+    {
+        if (!_dragging) return;
+        var (x, y) = Fraction(e);
+        PlaceBox(x, y);
+    }
+
+    private void Placement_MouseUp(object sender, MouseButtonEventArgs e)
+    {
+        if (!_dragging) return;
+        _dragging = false;
+        PlacementCanvas.ReleaseMouseCapture();
+        var (x, y) = Fraction(e);
+        _vm.SetLyricsBox(x, y); // applied when you let go
+    }
+
+    private void PlacementAuto_Click(object sender, RoutedEventArgs e)
+    {
+        _vm.SetLyricsBox(-1, 0.5);
+        RefreshPlacement();
+    }
 
     private void AmbientButton_Click(object sender, RoutedEventArgs e) =>
         OpenMenu(AmbientButton, SettingsViewModel.AmbientPresets.Select(a => (a.Name, a.Preset == _vm.Ambient, (Action)(() => _vm.Ambient = a.Preset))), separatorAfterFirst: true);

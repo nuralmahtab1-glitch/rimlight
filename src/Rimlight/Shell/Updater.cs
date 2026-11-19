@@ -13,7 +13,9 @@ public sealed class Updater
 {
     public const string RepoUrl = "https://github.com/nuralmahtab1-glitch/rimlight";
 
-    private readonly UpdateManager _mgr = new(new GithubSource(RepoUrl, null, false));
+    // Created lazily: Velopack's startup hook (VelopackApp.Build().Run()) must run before any UpdateManager exists.
+    private UpdateManager? _mgrField;
+    private UpdateManager _mgr => _mgrField ??= new UpdateManager(new GithubSource(RepoUrl, null, false));
     private UpdateInfo? _ready;
 
     private static readonly string StampFile = Path.Combine(
@@ -22,14 +24,14 @@ public sealed class Updater
     /// <summary>Raised (background thread) when an update has been downloaded; argument = new version.</summary>
     public event Action<string>? UpdateReady;
 
-    public bool IsInstalled => _mgr.IsInstalled;
+    public bool IsInstalled { get { try { return _mgr.IsInstalled; } catch { return false; } } }
     public bool HasUpdateReady => _ready is not null;
 
     public async Task CheckAsync(bool force = false)
     {
         try
         {
-            if (!_mgr.IsInstalled) return;
+            if (!IsInstalled) return;
             if (!force && File.Exists(StampFile) && DateTime.UtcNow - File.GetLastWriteTimeUtc(StampFile) < TimeSpan.FromDays(1)) return;
             Directory.CreateDirectory(Path.GetDirectoryName(StampFile)!);
             File.WriteAllText(StampFile, DateTime.UtcNow.ToString("O"));

@@ -84,6 +84,9 @@ public sealed class AppSettings
     public bool LyricsOnTop { get; set; } = false;
     /// <summary>Background image for the Picture lyrics style (empty = the bundled default in %APPDATA%\Rimlight\backgrounds).</summary>
     public string LyricsPicture { get; set; } = "";
+    /// <summary>Picture style: centre of the lyrics box as a fraction of the screen (X &lt; 0 = automatic placement).</summary>
+    public double LyricsBoxX { get; set; } = -1;
+    public double LyricsBoxY { get; set; } = 0.5;
     /// <summary>Auto-hide the Windows taskbar while lyrics are on screen.</summary>
     public bool HideTaskbarWithLyrics { get; set; } = true;
     /// <summary>Hide lyrics while the mouse/keyboard is being used; bring them back after 10 s untouched.</summary>

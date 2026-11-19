@@ -298,7 +298,22 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
     public string LyricsPicture
     {
         get => _s.LyricsPicture;
-        set { if (Set(_s.LyricsPicture, value, v => _s.LyricsPicture = v)) Raise(nameof(LyricsPictureName)); }
+        set { if (Set(_s.LyricsPicture, value, v => _s.LyricsPicture = v)) { Raise(nameof(LyricsPictureName)); Raise(nameof(LyricsPicturePreview)); } }
+    }
+
+    /// <summary>The picture actually used (yours or the default), for the placement preview.</summary>
+    public string LyricsPicturePreview => string.IsNullOrWhiteSpace(_s.LyricsPicture) ? Rimlight.Lyrics.LyricsController.DefaultPicture : _s.LyricsPicture;
+
+    public double LyricsBoxX => _s.LyricsBoxX;
+    public double LyricsBoxY => _s.LyricsBoxY;
+    public bool LyricsBoxAuto => _s.LyricsBoxX < 0;
+
+    public void SetLyricsBox(double x, double y)
+    {
+        _s.LyricsBoxX = x < 0 ? -1 : Math.Clamp(x, 0, 1);
+        _s.LyricsBoxY = Math.Clamp(y, 0, 1);
+        Raise(nameof(LyricsBoxX)); Raise(nameof(LyricsBoxY)); Raise(nameof(LyricsBoxAuto));
+        _changed();
     }
 
     public bool LyricsOnTop { get => _s.LyricsOnTop; set => Set(_s.LyricsOnTop, value, v => _s.LyricsOnTop = v); }

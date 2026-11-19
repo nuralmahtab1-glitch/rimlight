@@ -45,6 +45,9 @@ public sealed class StageWindow : Window, ILyricsDisplay
     private readonly double _size;
     private int _lineSeed;
 
+    /// <summary>Picture style: where the user placed the lyrics box (centre, fractions of the screen), or null = auto.</summary>
+    public static Point? PictureBoxPlacement { get; set; }
+
     public StageWindow(Look look, bool onTop, double sizeLevel, string? picturePath = null)
     {
         _look = look;
@@ -220,6 +223,7 @@ public sealed class StageWindow : Window, ILyricsDisplay
         BitmapSource? img = LoadPicture(path, (int)Math.Ceiling(SystemParameters.PrimaryScreenWidth * 1.25));
         var (luma, rightBusier) = img is null ? (0.3, true) : Analyse(img);
         _textOnRight = !rightBusier; // lyrics go on the calmer (emptier) side
+        if (PictureBoxPlacement is { } placed) _textOnRight = placed.X > 0.5;
         bool bright = luma > 0.55;
         if (img is not null) PickNeonFromPicture(img);
         _kInk = bright ? new SolidColorBrush(Color.FromRgb(0x1C, 0x0E, 0x3A)) : Brushes.White;
@@ -345,14 +349,30 @@ public sealed class StageWindow : Window, ILyricsDisplay
         _karaoke.Effect = new DropShadowEffect { Color = _kGlow, BlurRadius = 22, ShadowDepth = 0, Opacity = bright ? 0.55 : 0.75 };
         _root.Children.Add(_karaoke);
 
+        // Manual placement from the settings preview: centre the lyrics box (and its echo) on the chosen spot.
+        if (PictureBoxPlacement is { } pos)
+        {
+            double boxW = _karaoke.Width, boxH = f * 4.2;
+            double left = Math.Clamp(pos.X * _w - boxW / 2, _w * 0.02, _w * 0.98 - boxW);
+            double top = Math.Clamp(pos.Y * _h - boxH / 2, _h * 0.03, _h * 0.97 - boxH);
+            foreach (var el in new FrameworkElement[] { _karaoke, _kEcho })
+            {
+                el.HorizontalAlignment = HorizontalAlignment.Left;
+                el.VerticalAlignment = VerticalAlignment.Top;
+                el.Margin = new Thickness(left, top, 0, 0);
+            }
+            _intro.HorizontalAlignment = HorizontalAlignment.Left;
+            _intro.Margin = new Thickness(left, 0, 0, 0);
+        }
+
         // Song intro card (big title + artist for a few seconds when a song starts).
         _introTitle.FontFamily = _introArtist.FontFamily = Display;
         _introTitle.FontWeight = FontWeights.Black; _introTitle.FontSize = f * 1.15;
         _introArtist.FontWeight = FontWeights.Light; _introArtist.FontSize = f * 0.5;
         _introTitle.Foreground = _introArtist.Foreground = _kInk;
         _introTitle.TextWrapping = TextWrapping.Wrap;
-        _intro.Width = _w * 0.34; _intro.HorizontalAlignment = side; _intro.VerticalAlignment = VerticalAlignment.Center;
-        _intro.Margin = SideMargin(0, 0);
+        _intro.Width = _w * 0.34; _intro.VerticalAlignment = VerticalAlignment.Center;
+        if (PictureBoxPlacement is null) { _intro.HorizontalAlignment = side; _intro.Margin = SideMargin(0, 0); }
         _intro.Children.Add(_introArtist);
         _intro.Children.Add(_introTitle);
         _intro.Opacity = 0;

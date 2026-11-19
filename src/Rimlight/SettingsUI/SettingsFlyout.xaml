@@ -313,6 +313,28 @@
                                                 Click="ResetPicture_Click" ToolTip="Back to the default picture"/>
                                     </StackPanel>
                                 </Grid>
+                                <StackPanel Visibility="{Binding IsPictureStyle, Converter={StaticResource BoolToVis}}" Margin="0,4,0,6">
+                                    <Grid>
+                                        <TextBlock Text="Where the lyrics go" Style="{StaticResource LabelText}"/>
+                                        <Button Content="Auto" Style="{StaticResource FlatButton}" Padding="10,3" HorizontalAlignment="Right"
+                                                Click="PlacementAuto_Click" ToolTip="Let Rimlight pick the empty side of the picture"/>
+                                    </Grid>
+                                    <TextBlock Text="Drag the box on the picture" Style="{StaticResource SubtleText}" FontSize="11" Margin="0,1,0,6"/>
+                                    <Border CornerRadius="8" ClipToBounds="True" HorizontalAlignment="Left">
+                                        <Canvas x:Name="PlacementCanvas" Width="292" Height="164" Background="#22FFFFFF" Cursor="SizeAll"
+                                                MouseLeftButtonDown="Placement_MouseDown" MouseMove="Placement_MouseMove"
+                                                MouseLeftButtonUp="Placement_MouseUp">
+                                            <Image x:Name="PlacementImage" Width="292" Height="164" Stretch="UniformToFill"/>
+                                            <Border x:Name="PlacementBox" Width="99" Height="44" CornerRadius="5"
+                                                    Background="#55FFFFFF" BorderBrush="White" BorderThickness="1.5">
+                                                <TextBlock x:Name="PlacementLabel" Text="Lyrics" FontWeight="SemiBold" FontSize="11"
+                                                           HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White">
+                                                    <TextBlock.Effect><DropShadowEffect BlurRadius="4" ShadowDepth="0" Opacity="0.8"/></TextBlock.Effect>
+                                                </TextBlock>
+                                            </Border>
+                                        </Canvas>
+                                    </Border>
+                                </StackPanel>
                                 <Grid Style="{StaticResource RowGrid}" Visibility="{Binding IsStageStyle, Converter={StaticResource BoolToVis}}">
                                     <StackPanel Margin="0,0,56,0">
                                         <TextBlock Text="Show on top of windows" Style="{StaticResource LabelText}"/>

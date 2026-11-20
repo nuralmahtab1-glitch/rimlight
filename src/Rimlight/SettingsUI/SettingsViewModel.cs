@@ -27,6 +27,8 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         _changed = changed;
         Primary = new ColorEditViewModel("Primary", () => _s.PrimaryColor, v => { _s.PrimaryColor = v; ColorChanged(); });
         Secondary = new ColorEditViewModel("Secondary", () => _s.SecondaryColor, v => { _s.SecondaryColor = v; ColorChanged(); });
+        ChatColor1 = new ColorEditViewModel("Colour 1", () => _s.ChatColor1, v => { _s.ChatColor1 = v; _changed(); });
+        ChatColor2 = new ColorEditViewModel("Colour 2", () => _s.ChatColor2, v => { _s.ChatColor2 = v; _changed(); });
         SelectDisplayCommand = new RelayCommand(p => { if (p is string id) Display = id; });
         SwapColorsCommand = new RelayCommand(_ =>
         {
@@ -284,16 +286,104 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         (LyricsStyle.Album, "Album wallpaper", "The album cover fills your screen and moves to the beat, giant lyrics over it"),
         (LyricsStyle.Constellation, "Constellation", "Words appear as stars joined by lines, the current word glowing"),
         (LyricsStyle.ChatBlack, "Chat screen", "Black screen with a moving frame of light, each line pops up as a message bubble"),
-        (LyricsStyle.ChatPicture, "Chat + picture", "Your picture drifts on screen, each line pops up as a blue message bubble over it"),
         (LyricsStyle.Card, "Card", "Floating glass card, words fly in"),
         (LyricsStyle.Bold, "Bold", "Big kinetic words, no background"),
         (LyricsStyle.Subtitle, "Subtitle", "One simple line, good while working"),
     ];
 
     /// <summary>Album wallpaper and Constellation fill the screen; the others are small overlays.</summary>
-    public bool IsStageStyle => _s.LyricsStyle is LyricsStyle.Album or LyricsStyle.FullScreen or LyricsStyle.Constellation or LyricsStyle.Picture or LyricsStyle.ChatPicture or LyricsStyle.ChatBlack;
+    public bool IsStageStyle => _s.LyricsStyle is LyricsStyle.Album or LyricsStyle.FullScreen or LyricsStyle.Constellation or LyricsStyle.Picture or LyricsStyle.ChatBlack;
 
-    public bool IsPictureStyle => _s.LyricsStyle is LyricsStyle.Picture or LyricsStyle.ChatPicture;
+    public bool IsChatScreen => _s.LyricsStyle == LyricsStyle.ChatBlack;
+    public bool IsChatDefaultColors => IsChatScreen && _s.ChatEdgeColors == ChatColorMode.Default;
+
+    public ColorEditViewModel ChatColor1 { get; }
+    public ColorEditViewModel ChatColor2 { get; }
+
+    public static IReadOnlyList<(ChatBubbleLook Look, string Name)> ChatBubbleOptions { get; } =
+    [
+        (ChatBubbleLook.TwoTone, "Two-tone (dark + blue-grey)"),
+        (ChatBubbleLook.IMessage, "iMessage blue"),
+    ];
+
+    public ChatBubbleLook ChatBubbles
+    {
+        get => _s.ChatBubbles;
+        set { if (Set(_s.ChatBubbles, value, v => _s.ChatBubbles = v)) Raise(nameof(ChatBubblesName)); }
+    }
+    public string ChatBubblesName => ChatBubbleOptions.First(o => o.Look == _s.ChatBubbles).Name;
+
+    public static IReadOnlyList<(ChatColorMode Mode, string Name)> ChatEdgeOptions { get; } =
+    [
+        (ChatColorMode.Default, "Default (pink + violet)"),
+        (ChatColorMode.Album, "Album colours"),
+        (ChatColorMode.White, "White"),
+        (ChatColorMode.Sunset, "Sunset (orange + pink)"),
+        (ChatColorMode.Ocean, "Ocean (cyan + blue)"),
+        (ChatColorMode.Aurora, "Aurora (green + violet)"),
+        (ChatColorMode.Ember, "Ember (gold + red)"),
+        (ChatColorMode.Candy, "Candy (pink + sky)"),
+        (ChatColorMode.LimePop, "Lime pop (lime + cyan)"),
+    ];
+
+    public ChatColorMode ChatEdgeColors
+    {
+        get => _s.ChatEdgeColors;
+        set { if (Set(_s.ChatEdgeColors, value, v => _s.ChatEdgeColors = v)) { Raise(nameof(ChatEdgeColorsName)); Raise(nameof(IsChatDefaultColors)); } }
+    }
+    public string ChatEdgeColorsName => ChatEdgeOptions.First(o => o.Mode == _s.ChatEdgeColors).Name;
+
+    public bool IsPictureStyle => _s.LyricsStyle == LyricsStyle.Picture;
+    public static IReadOnlyList<(ChatMotion Motion, string Name)> ChatMotionOptions { get; } =
+    [
+        (ChatMotion.Classic, "Classic (wide, upper middle)"),
+        (ChatMotion.Reel, "Reel (blue pill, words pop in)"),
+        (ChatMotion.Strips, "Strips (dark pills, stacked)"),
+    ];
+
+    public ChatMotion ChatMotion
+    {
+        get => _s.ChatMotion;
+        set { if (Set(_s.ChatMotion, value, v => _s.ChatMotion = v)) Raise(nameof(ChatMotionName)); }
+    }
+    public string ChatMotionName => ChatMotionOptions.First(o => o.Motion == _s.ChatMotion).Name;
+
+    // ---- saved presets
+    /// <summary>Looks that come with the app. "Purple girl" = the bundled picture with shake 36 and text size 60.</summary>
+    private static readonly LookPreset[] BuiltInPresets =
+    [
+        new LookPreset { Name = "Purple girl", Style = LyricsStyle.Picture, Picture = "", Motion = 36, Size = 60, BuiltIn = true },
+    ];
+
+    public IReadOnlyList<LookPreset> Presets => BuiltInPresets.Concat(_s.Presets).ToList();
+
+    public void SavePreset(string name)
+    {
+        name = name.Trim();
+        if (name.Length == 0 || BuiltInPresets.Any(p => p.Name.Equals(name, StringComparison.OrdinalIgnoreCase))) return;
+        _s.Presets.RemoveAll(p => p.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+        _s.Presets.Add(new LookPreset
+        {
+            Name = name, Style = _s.LyricsStyle, Picture = _s.LyricsPicture, Motion = _s.BackgroundMotion, Size = _s.LyricsSize,
+            OnTop = _s.LyricsOnTop, EdgeColors = _s.ChatEdgeColors, Color1 = _s.ChatColor1, Color2 = _s.ChatColor2,
+            Bubbles = _s.ChatBubbles, Motion2 = _s.ChatMotion,
+        });
+        Raise(nameof(Presets));
+        _changed();
+    }
+
+    public void ApplyPreset(LookPreset p)
+    {
+        _s.LyricsStyle = p.Style; _s.LyricsPicture = p.Picture; _s.BackgroundMotion = p.Motion; _s.LyricsSize = p.Size;
+        _s.LyricsOnTop = p.OnTop; _s.ChatEdgeColors = p.EdgeColors; _s.ChatColor1 = p.Color1; _s.ChatColor2 = p.Color2;
+        _s.ChatBubbles = p.Bubbles; _s.ChatMotion = p.Motion2;
+        _s.PicturePresetApplied = true;
+        ChatColor1.LoadFromSettings(); ChatColor2.LoadFromSettings();
+        Refresh();
+        _changed();
+    }
+
+    public void DeletePreset(LookPreset p) { _s.Presets.Remove(p); Raise(nameof(Presets)); _changed(); }
 
     public string LyricsPictureName => string.IsNullOrWhiteSpace(_s.LyricsPicture) ? "Default picture" : System.IO.Path.GetFileName(_s.LyricsPicture);
 
@@ -331,7 +421,17 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
     public LyricsStyle LyricsStyle
     {
         get => _s.LyricsStyle;
-        set { if (Set(_s.LyricsStyle, value, v => _s.LyricsStyle = v)) { Raise(nameof(LyricsStyleName)); Raise(nameof(LyricsStyleDescription)); Raise(nameof(LyricsPlacementVisible)); Raise(nameof(IsStageStyle)); Raise(nameof(IsPictureStyle)); } }
+        set
+        {
+            if (value == LyricsStyle.Picture && !_s.PicturePresetApplied && string.IsNullOrWhiteSpace(_s.LyricsPicture))
+            {
+                // Picture style's starting preset (only with the bundled picture, only the first time).
+                _s.PicturePresetApplied = true;
+                _s.BackgroundMotion = 36;
+                _s.LyricsSize = 60;
+                Raise(nameof(BackgroundMotion)); Raise(nameof(LyricsSize));
+            }
+            if (Set(_s.LyricsStyle, value, v => _s.LyricsStyle = v)) { Raise(nameof(LyricsStyleName)); Raise(nameof(LyricsStyleDescription)); Raise(nameof(LyricsPlacementVisible)); Raise(nameof(IsStageStyle)); Raise(nameof(IsPictureStyle)); Raise(nameof(IsChatScreen)); Raise(nameof(IsChatDefaultColors)); } }
     }
 
     private (LyricsStyle Style, string Name, string Description) CurrentLyricsStyle =>
@@ -408,7 +508,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         _s.CornerRadiusAuto = d.CornerRadiusAuto; _s.CornerRadius = d.CornerRadius;
         _s.PrimaryColor = d.PrimaryColor; _s.SecondaryColor = d.SecondaryColor;
         _s.Motion = d.Motion; _s.BeatSensitivity = d.BeatSensitivity; _s.AlbumColorCount = d.AlbumColorCount;
-        _s.LyricsStyle = d.LyricsStyle; _s.LyricsPlacement = d.LyricsPlacement; _s.LyricsSize = d.LyricsSize;
+        _s.ChatEdgeColors = d.ChatEdgeColors; _s.ChatColor1 = d.ChatColor1; _s.ChatColor2 = d.ChatColor2; _s.ChatBubbles = d.ChatBubbles; _s.ChatMotion = d.ChatMotion; ChatColor1.LoadFromSettings(); ChatColor2.LoadFromSettings(); _s.LyricsStyle = d.LyricsStyle; _s.LyricsPlacement = d.LyricsPlacement; _s.LyricsSize = d.LyricsSize;
         Primary.LoadFromSettings(); Secondary.LoadFromSettings();
         Refresh();
         _changed();

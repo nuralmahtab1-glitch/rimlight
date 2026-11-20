@@ -24,14 +24,65 @@ public enum LyricsStyle
     Constellation,
     /// <summary>Your own picture as a living background, karaoke lyrics in its empty side.</summary>
     Picture,
+    /// <summary>Removed style; old settings files that name it load as Chat screen.</summary>
+    ChatPicture,
     /// <summary>Black screen, a glowing frame that drifts and changes colour, each line pops up as a chat bubble.</summary>
     ChatBlack,
-    /// <summary>Your picture as a living background, each line pops up as a blue chat bubble over it.</summary>
-    ChatPicture,
 }
 
 [JsonConverter(typeof(JsonStringEnumConverter<LyricsPlacement>))]
 public enum LyricsPlacement { Top, Middle, Bottom }
+
+/// <summary>Where the Chat screen's edge light gets its colours.</summary>
+[JsonConverter(typeof(JsonStringEnumConverter<ChatColorMode>))]
+public enum ChatColorMode
+{
+    /// <summary>Hot pink flowing into violet (as in the reference video).</summary>
+    Default,
+    /// <summary>Two colours from the current album cover (falls back to Default without a cover).</summary>
+    Album,
+    /// <summary>Thin white light (as in the second part of the reference video).</summary>
+    White,
+    Sunset, Ocean, Aurora, Ember, Candy, LimePop,
+}
+
+/// <summary>The two colours of each fixed Chat screen edge-light preset.</summary>
+public static class ChatEdgePresets
+{
+    public static (string A, string B)? Colors(ChatColorMode mode) => mode switch
+    {
+        ChatColorMode.White => ("#FFFFFF", "#C8C8D6"),
+        ChatColorMode.Sunset => ("#FF7A3D", "#FF2E88"),   // orange into hot pink
+        ChatColorMode.Ocean => ("#22D3EE", "#3B82F6"),    // cyan into blue
+        ChatColorMode.Aurora => ("#34F5A8", "#7B3CFF"),   // green into violet
+        ChatColorMode.Ember => ("#FACC15", "#E0401E"),    // gold into red
+        ChatColorMode.Candy => ("#F9A8D4", "#7DD3FC"),    // pink into sky blue
+        ChatColorMode.LimePop => ("#C6FF3D", "#22D3EE"),  // lime into cyan
+        _ => null,
+    };
+}
+
+/// <summary>How the Chat screen's lyrics move.</summary>
+[JsonConverter(typeof(JsonStringEnumConverter<ChatMotion>))]
+public enum ChatMotion
+{
+    /// <summary>Wide column in the upper middle, bubbles grow word by word.</summary>
+    Classic,
+    /// <summary>Like the reel: bubbles stacked at the left, each one appears full width and fills in word by word, older ones blur and rise away.</summary>
+    Reel,
+    /// <summary>Plain dark pills that fit their text; each line enters whole and the stack shifts up.</summary>
+    Strips,
+}
+
+/// <summary>How the Chat screen's bubbles look.</summary>
+[JsonConverter(typeof(JsonStringEnumConverter<ChatBubbleLook>))]
+public enum ChatBubbleLook
+{
+    /// <summary>Dark warm pills on the left, light blue-grey pills on the right, like a conversation.</summary>
+    TwoTone,
+    /// <summary>Same layout and movement, but the current line is iMessage blue and past lines turn dark grey.</summary>
+    IMessage,
+}
 
 /// <summary>How Music Sync moves the light. Names match <c>FlowPattern</c> (except Auto).</summary>
 [JsonConverter(typeof(JsonStringEnumConverter<MotionStyle>))]
@@ -82,6 +133,13 @@ public sealed class AppSettings
     // Lyrics (fetched from LRCLIB; only song title/artist/album/length are sent).
     public bool ShowLyrics { get; set; } = true;
     public LyricsStyle LyricsStyle { get; set; } = LyricsStyle.Card;
+    /// <summary>Chat screen only: edge-light colours.</summary>
+    public ChatColorMode ChatEdgeColors { get; set; } = ChatColorMode.Default;
+    /// <summary>Chat screen only: the two colours of the Default edge light (editable).</summary>
+    public string ChatColor1 { get; set; } = "#FF2E8C";
+    public string ChatColor2 { get; set; } = "#6B3CFF";
+    /// <summary>Chat screen only: bubble look.</summary>
+    public ChatBubbleLook ChatBubbles { get; set; } = ChatBubbleLook.TwoTone;
     public LyricsPlacement LyricsPlacement { get; set; } = LyricsPlacement.Bottom;
     public double LyricsSize { get; set; } = 50; // 0..100
     /// <summary>Album / Constellation: false = live desktop wallpaper behind your windows, true = on top of everything.</summary>
@@ -93,6 +151,12 @@ public sealed class AppSettings
     public double LyricsBoxY { get; set; } = 0.5;
     /// <summary>0..100: how much lyrics backgrounds drift, sway and punch on the beat (0 = still, 50 = default).</summary>
     public double BackgroundMotion { get; set; } = 50;
+    /// <summary>The Picture style's starting preset (motion 36, text size 60) has been applied once; later changes stick.</summary>
+    public bool PicturePresetApplied { get; set; }
+    /// <summary>How the Chat screen's lyrics move.</summary>
+    public ChatMotion ChatMotion { get; set; } = ChatMotion.Classic;
+    /// <summary>Looks the user saved by name.</summary>
+    public List<LookPreset> Presets { get; set; } = new();
     /// <summary>Auto-hide the Windows taskbar while lyrics are on screen.</summary>
     public bool HideTaskbarWithLyrics { get; set; } = true;
     /// <summary>Hide lyrics while the mouse/keyboard is being used; bring them back after 10 s untouched.</summary>
@@ -132,4 +196,22 @@ public static class LightMetrics
         var v = (float)Math.Clamp(level / 100.0, 0, 1);
         return 64f * v;
     }
+}
+
+/// <summary>A saved lyrics look (style, picture, sliders, chat colours) the user can load again.</summary>
+public sealed class LookPreset
+{
+    public string Name { get; set; } = "";
+    public LyricsStyle Style { get; set; }
+    public string Picture { get; set; } = "";
+    public double Motion { get; set; } = 50;
+    public double Size { get; set; } = 50;
+    public bool OnTop { get; set; }
+    public ChatColorMode EdgeColors { get; set; }
+    public string Color1 { get; set; } = "#FF2E8C";
+    public string Color2 { get; set; } = "#6B3CFF";
+    public ChatBubbleLook Bubbles { get; set; }
+    public ChatMotion Motion2 { get; set; }
+    /// <summary>Ships with the app: shown in the list, never saved to the settings file, cannot be deleted.</summary>
+    [JsonIgnore] public bool BuiltIn { get; init; }
 }

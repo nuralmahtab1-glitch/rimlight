@@ -37,6 +37,7 @@
   <ItemGroup>
     <EmbeddedResource Include="Overlay\Shaders\EdgeGlow.hlsl" />
     <Resource Include="Assets\Rimlight.ico" />
+    <Content Include="Assets\Pictures\default.jpg" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

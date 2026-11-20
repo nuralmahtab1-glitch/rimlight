@@ -102,6 +102,7 @@ public partial class App : Application
 
         _store = new SettingsStore(SettingsDirectory);
         _settings = _store.Load();
+        if (_settings.LyricsStyle == LyricsStyle.ChatPicture) _settings.LyricsStyle = LyricsStyle.ChatBlack;
         if (_settings.Version < 2)
         {
             // v2: the light follows the song with many patterns by default.
@@ -189,6 +190,15 @@ public partial class App : Application
                 _settings.LyricsStyle = st;
                 _settings.ShowLyrics = true;
                 _settings.LyricsOnTop = e.Args.Contains("--on-top", StringComparer.OrdinalIgnoreCase);
+                // Dev/test only: --chat-look <TwoTone|IMessage>, --chat-edge <preset> (not saved).
+                int cm = Array.FindIndex(e.Args, a => a.Equals("--chat-motion", StringComparison.OrdinalIgnoreCase));
+                if (cm >= 0 && cm + 1 < e.Args.Length && Enum.TryParse<ChatMotion>(e.Args[cm + 1], true, out var mo)) _settings.ChatMotion = mo; // test only
+                int cl = Array.FindIndex(e.Args, a => a.Equals("--chat-look", StringComparison.OrdinalIgnoreCase));
+                if (cl >= 0 && cl + 1 < e.Args.Length && Enum.TryParse<ChatBubbleLook>(e.Args[cl + 1], true, out var look)) _settings.ChatBubbles = look;
+                int ce = Array.FindIndex(e.Args, a => a.Equals("--chat-edge", StringComparison.OrdinalIgnoreCase));
+                if (ce >= 0 && ce + 1 < e.Args.Length && Enum.TryParse<ChatColorMode>(e.Args[ce + 1], true, out var edge)) _settings.ChatEdgeColors = edge;
+                if (e.Args.Contains("--default-picture", StringComparer.OrdinalIgnoreCase)) _settings.LyricsPicture = ""; // test the bundled picture (not saved)
+                _renderer.Update(BuildOverlayConfig());
                 _lyrics.ApplySettings(_settings, false);
             }
             _lyrics.StartDemo();
@@ -251,7 +261,7 @@ public partial class App : Application
         _toggleItem.Header = _settings.Active ? "Turn light off" : "Turn light on";
         _lyricsItem.IsChecked = _settings.ShowLyrics;
         _lyricsTopItem.IsChecked = _settings.LyricsOnTop;
-        _lyricsTopItem.IsEnabled = _settings.ShowLyrics && _settings.LyricsStyle is LyricsStyle.Album or LyricsStyle.FullScreen or LyricsStyle.Constellation or LyricsStyle.Picture or LyricsStyle.ChatPicture or LyricsStyle.ChatBlack;
+        _lyricsTopItem.IsEnabled = _settings.ShowLyrics && _settings.LyricsStyle is LyricsStyle.Album or LyricsStyle.FullScreen or LyricsStyle.Constellation or LyricsStyle.Picture or LyricsStyle.ChatBlack;
         _tray.ToolTipText = _settings.Active ? "Rimlight — on" : "Rimlight — off";
     }
 
@@ -388,6 +398,18 @@ public partial class App : Application
     {
         var s = _settings;
         var (colors, _) = EffectiveColors();
+        // Chat screen only: pink + violet by default, or two album colours (default if there is no cover); one steady sweep.
+        bool chat = s.ShowLyrics && s.LyricsStyle == LyricsStyle.ChatBlack;
+        if (chat)
+        {
+            Lab Of(string hex, Rgb fallback) => OkLab.FromRgb(Rgb.TryParseHex(hex, out var c) ? c : fallback);
+            colors = s.ChatEdgeColors switch
+            {
+                ChatColorMode.Album when _albumPalette is { Count: >= 2 } pal => [pal.Colors[0], pal.Colors[1]],
+                var m when ChatEdgePresets.Colors(m) is { } p => [Of(p.A, new Rgb(1f, 1f, 1f)), Of(p.B, new Rgb(1f, 1f, 1f))],
+                _ => [Of(s.ChatColor1, new Rgb(1f, 0.18f, 0.55f)), Of(s.ChatColor2, new Rgb(0.42f, 0.24f, 1f))],
+            };
+        }
         return new OverlayConfig
         {
             Active = s.Active,
@@ -401,7 +423,7 @@ public partial class App : Application
             Secondary = colors[1],
             Colors = colors,
             Animation = s.Animation,
-            Motion = s.Motion,
+            Motion = chat && s.Motion == MotionStyle.Auto ? MotionStyle.Sweep : s.Motion,
             IdleBreathing = s.IdleBreathing,
             Ambient = s.Ambient,
             ColorFadeSeconds = _fadeSeconds,

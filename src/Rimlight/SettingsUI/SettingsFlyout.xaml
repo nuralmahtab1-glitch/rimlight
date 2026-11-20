@@ -301,6 +301,64 @@
                                     <Button Content="Preview" Style="{StaticResource FlatButton}" Padding="10,3" HorizontalAlignment="Right"
                                             Click="PreviewLyrics_Click" ToolTip="Show this style with sample lyrics"/>
                                 </Grid>
+                                <Grid Style="{StaticResource RowGrid}" Visibility="{Binding IsStageStyle, Converter={StaticResource BoolToVis}}">
+                                    <TextBlock Text="Saved looks" Style="{StaticResource LabelText}" VerticalAlignment="Center"/>
+                                    <Button x:Name="PresetLoadButton" Content="Load…" Style="{StaticResource FlatButton}" Padding="10,4" HorizontalAlignment="Right" Click="PresetLoad_Click"/>
+                                </Grid>
+                                <Grid Style="{StaticResource RowGrid}" Visibility="{Binding IsStageStyle, Converter={StaticResource BoolToVis}}">
+                                    <TextBox x:Name="PresetNameBox" Margin="0,0,90,0" Padding="6,3" ToolTip="Name for this look, e.g. My picture"/>
+                                    <Button Content="Save look" Style="{StaticResource FlatButton}" Padding="10,4" HorizontalAlignment="Right" Click="PresetSave_Click"
+                                            ToolTip="Saves the current style, picture and sliders under this name"/>
+                                </Grid>
+                                <Grid Style="{StaticResource RowGrid}" Visibility="{Binding IsChatScreen, Converter={StaticResource BoolToVis}}">
+                                    <TextBlock Text="Movement" Style="{StaticResource LabelText}"/>
+                                    <Button x:Name="ChatMotionButton" Style="{StaticResource DropButton}" HorizontalAlignment="Right"
+                                            MinWidth="150" MaxWidth="200" Click="ChatMotionButton_Click">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                            <TextBlock Text="{Binding ChatMotionName}" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Grid.Column="1" Text="&#xE70D;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                                       FontSize="10" Margin="8,0,0,0" VerticalAlignment="Center"
+                                                       Foreground="{StaticResource SubtleTextBrush}"/>
+                                        </Grid>
+                                    </Button>
+                                </Grid>
+                                <Grid Style="{StaticResource RowGrid}" Visibility="{Binding IsChatScreen, Converter={StaticResource BoolToVis}}">
+                                    <TextBlock Text="Edge colours" Style="{StaticResource LabelText}"/>
+                                    <Button x:Name="ChatEdgeButton" Style="{StaticResource DropButton}" HorizontalAlignment="Right"
+                                            MinWidth="150" MaxWidth="200" Click="ChatEdgeButton_Click">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="{Binding ChatEdgeColorsName}" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Grid.Column="1" Text="&#xE70D;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                                       FontSize="10" Margin="8,0,0,0" VerticalAlignment="Center"
+                                                       Foreground="{StaticResource SubtleTextBrush}"/>
+                                        </Grid>
+                                    </Button>
+                                </Grid>
+                                <StackPanel Visibility="{Binding IsChatDefaultColors, Converter={StaticResource BoolToVis}}">
+                                    <ContentControl Content="{Binding ChatColor1}" ContentTemplate="{StaticResource ColorEditor}"/>
+                                    <ContentControl Content="{Binding ChatColor2}" ContentTemplate="{StaticResource ColorEditor}"/>
+                                </StackPanel>
+                                <Grid Style="{StaticResource RowGrid}" Visibility="{Binding IsChatScreen, Converter={StaticResource BoolToVis}}">
+                                    <TextBlock Text="Bubbles" Style="{StaticResource LabelText}"/>
+                                    <Button x:Name="ChatBubblesButton" Style="{StaticResource DropButton}" HorizontalAlignment="Right"
+                                            MinWidth="150" MaxWidth="200" Click="ChatBubblesButton_Click">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="{Binding ChatBubblesName}" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Grid.Column="1" Text="&#xE70D;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                                       FontSize="10" Margin="8,0,0,0" VerticalAlignment="Center"
+                                                       Foreground="{StaticResource SubtleTextBrush}"/>
+                                        </Grid>
+                                    </Button>
+                                </Grid>
                                 <Grid Style="{StaticResource RowGrid}" Visibility="{Binding IsPictureStyle, Converter={StaticResource BoolToVis}}">
                                     <StackPanel Margin="0,0,110,0">
                                         <TextBlock Text="Picture" Style="{StaticResource LabelText}"/>

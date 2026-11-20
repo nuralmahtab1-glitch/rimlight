@@ -123,6 +123,22 @@ public partial class SettingsFlyout : Window
         finally { _menuOpen = false; Activate(); }
     }
 
+    private void PresetSave_Click(object sender, RoutedEventArgs e)
+    {
+        string n = PresetNameBox.Text.Trim();
+        if (n.Length == 0) { PresetNameBox.Focus(); return; }
+        _vm.SavePreset(n);
+        PresetNameBox.Text = "";
+    }
+
+    private void PresetLoad_Click(object sender, RoutedEventArgs e)
+    {
+        var items = new List<(string, bool, Action)>();
+        foreach (var p in _vm.Presets.ToList()) items.Add((p.Name, false, () => _vm.ApplyPreset(p)));
+        foreach (var p in _vm.Presets.Where(x => !x.BuiltIn).ToList()) items.Add(("Delete: " + p.Name, false, () => _vm.DeletePreset(p)));
+                OpenMenu(PresetLoadButton, items, separatorAfterFirst: false);
+    }
+
     private void ResetPicture_Click(object sender, RoutedEventArgs e) => _vm.LyricsPicture = "";
 
     // ---------------------------------------------------------------- lyrics placement preview
@@ -228,6 +244,15 @@ public partial class SettingsFlyout : Window
 
     private void AmbientButton_Click(object sender, RoutedEventArgs e) =>
         OpenMenu(AmbientButton, SettingsViewModel.AmbientPresets.Select(a => (a.Name, a.Preset == _vm.Ambient, (Action)(() => _vm.Ambient = a.Preset))), separatorAfterFirst: true);
+
+    private void ChatEdgeButton_Click(object sender, RoutedEventArgs e) =>
+        OpenMenu(ChatEdgeButton, SettingsViewModel.ChatEdgeOptions.Select(o => (o.Name, o.Mode == _vm.ChatEdgeColors, (Action)(() => _vm.ChatEdgeColors = o.Mode))), separatorAfterFirst: false);
+
+    private void ChatMotionButton_Click(object sender, RoutedEventArgs e) =>
+        OpenMenu(ChatMotionButton, SettingsViewModel.ChatMotionOptions.Select(o => (o.Name, o.Motion == _vm.ChatMotion, (Action)(() => _vm.ChatMotion = o.Motion))), separatorAfterFirst: false);
+
+    private void ChatBubblesButton_Click(object sender, RoutedEventArgs e) =>
+        OpenMenu(ChatBubblesButton, SettingsViewModel.ChatBubbleOptions.Select(o => (o.Name, o.Look == _vm.ChatBubbles, (Action)(() => _vm.ChatBubbles = o.Look))), separatorAfterFirst: false);
 
     private void LyricsStyleButton_Click(object sender, RoutedEventArgs e) =>
         OpenMenu(LyricsStyleButton, SettingsViewModel.LyricsStyles.Select(l => (l.Name, l.Style == _vm.LyricsStyle, (Action)(() => _vm.LyricsStyle = l.Style))), separatorAfterFirst: false);

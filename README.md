@@ -29,6 +29,20 @@ Rimlight lives in the **system tray** (bottom-right, next to the clock; click th
 | **Ctrl+Alt+K** | Lyrics on/off |
 | **Ctrl+Alt+O** | Open/close settings |
 
+## What it does
+
+- **Edge glow that moves to the beat.** A neon light around your screen that sweeps and pulses with the music. Pick the motion pattern, thickness, glow size and brightness.
+- **Colours from the album cover.** The glow uses the colours of the song that's playing (up to four), and fades smoothly when the song changes. You can also pick your own colours.
+- **Gentle breathing when quiet.** When nothing is playing the glow can softly breathe (switch this off in settings).
+- **Synced lyrics, in different looks.** Full-screen lyrics that follow the song word by word:
+  - **Album**: a sharp cover card with a colour glow, a drifting colour backdrop and big, even lyrics.
+  - **Picture**: your own picture as a living background.
+  - **Constellation**: a night sky where each sung word lands as a star.
+  - **Chat screen**: lyrics as chat bubbles (also with your picture), with a moving frame of light.
+- **Smoother motion switch.** Off (default): about 30 frames a second, very light on your graphics (about 8% of an integrated GPU). On: your screen's full refresh rate, smoother but heavier.
+- **Automatic Battery Saver.** When Windows Battery Saver is on, Rimlight switches to its lightest animation.
+- **Pauses by itself** when your PC is locked or a full-screen app (a game, a video) is in front.
+
 ## Troubleshooting
 
 - **No album colors?** Check your music shows up in the Windows media popup (press a volume key).

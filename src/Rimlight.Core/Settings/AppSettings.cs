@@ -136,7 +136,7 @@ public sealed class AppSettings
     public bool ShowLyrics { get; set; } = true;
     public LyricsStyle LyricsStyle { get; set; } = LyricsStyle.Card;
     /// <summary>Chat screen only: edge-light colours.</summary>
-    public ChatColorMode ChatEdgeColors { get; set; } = ChatColorMode.Default;
+    public ChatColorMode ChatEdgeColors { get; set; } = ChatColorMode.Album;
     /// <summary>Chat screen only: the two colours of the Default edge light (editable).</summary>
     public string ChatColor1 { get; set; } = "#FF2E8C";
     public string ChatColor2 { get; set; } = "#6B3CFF";
@@ -156,7 +156,7 @@ public sealed class AppSettings
     /// <summary>The Picture style's starting preset (motion 36, text size 60) has been applied once; later changes stick.</summary>
     public bool PicturePresetApplied { get; set; }
     /// <summary>How the Chat screen's lyrics move.</summary>
-    public ChatMotion ChatMotion { get; set; } = ChatMotion.Classic;
+    public ChatMotion ChatMotion { get; set; } = ChatMotion.Reel;
     /// <summary>Looks the user saved by name.</summary>
     public List<LookPreset> Presets { get; set; } = new();
     /// <summary>Auto-hide the Windows taskbar while lyrics are on screen.</summary>

@@ -181,6 +181,9 @@ float4 PSMain(VSOut i) : SV_Target
     }
     float intensity = core + (1.0 - core) * g;
 
+    // Invisible tail of the halo: skip the colour work (atan2, gaussians, OKLab, pow) for pixels that can't be seen.
+    if (intensity * Intensity * rimAA < 0.003) return float4(0, 0, 0, 0);
+
     float Rz = clamp(max(Radius, BandExtent), 1.0, min(RectSize.x, RectSize.y) * 0.5);
     float baseT = perimeterT(p, RectSize.x, RectSize.y, Rz);
 

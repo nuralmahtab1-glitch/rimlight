@@ -43,7 +43,7 @@ public sealed class MediaSessionWatcher : IDisposable
     private string _preferred = "Auto";
     private string? _lastArtKey;
     private byte[]? _art64, _art96, _artLarge;
-    public const int LargeArtSize = 320;
+    public const int LargeArtSize = 640;
     private bool _disposed;
 
     public MediaSessionWatcher()

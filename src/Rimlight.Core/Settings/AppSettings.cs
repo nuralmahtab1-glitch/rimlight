@@ -118,6 +118,8 @@ public sealed class AppSettings
     /// <summary>How many colours to take from album art: 0 = auto (as many as the cover really has, up to 4).</summary>
     public int AlbumColorCount { get; set; } = 0;
     public bool IdleBreathing { get; set; } = true;
+    /// <summary>Draw every display refresh (smoother, heavier on the GPU). Off = about 30 fps.</summary>
+    public bool SmoothMotion { get; set; }
 
     public double Thickness { get; set; } = 18;   // 0..100 → ~4.9 DIP thin neon core
     public double Glow { get; set; } = 25;        // 0..100 → ~37 DIP short halo (~5% of screen height)

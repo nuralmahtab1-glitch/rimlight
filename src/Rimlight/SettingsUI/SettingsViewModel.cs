@@ -459,6 +459,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
 
     public double BeatSensitivity { get => _s.BeatSensitivity; set => Set(_s.BeatSensitivity, value, v => _s.BeatSensitivity = v); }
     public bool IdleBreathing { get => _s.IdleBreathing; set => Set(_s.IdleBreathing, value, v => _s.IdleBreathing = v); }
+    public bool SmoothMotion { get => _s.SmoothMotion; set => Set(_s.SmoothMotion, value, v => _s.SmoothMotion = v); }
 
     // ---------------------------------------------------------------- live audio meter
 

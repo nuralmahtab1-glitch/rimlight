@@ -218,6 +218,13 @@
                                 <CheckBox Style="{StaticResource ToggleSwitch}" HorizontalAlignment="Right"
                                           IsChecked="{Binding IdleBreathing}"/>
                             </Grid>
+
+                            <Grid Style="{StaticResource RowGrid}">
+                                <TextBlock Text="Smoother motion (uses more GPU)" Style="{StaticResource LabelText}"
+                                           ToolTip="Off: about 30 frames a second, light on your graphics. On: full screen refresh rate."/>
+                                <CheckBox Style="{StaticResource ToggleSwitch}" HorizontalAlignment="Right"
+                                          IsChecked="{Binding SmoothMotion}"/>
+                            </Grid>
                         </StackPanel>
                     </Border>
 

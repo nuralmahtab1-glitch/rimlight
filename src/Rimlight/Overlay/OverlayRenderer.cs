@@ -117,8 +117,6 @@ public sealed class OverlayRenderer : IDisposable
 
     private enum Pace { Sleep, Poll, Breathing, VSync }
 
-    /// <summary>Draw every other display refresh. Measured: GPU use 27% -> 8% on an Intel UHD laptop.</summary>
-    private const bool HalfRate = true;
 
     private void Run()
     {
@@ -208,9 +206,9 @@ public sealed class OverlayRenderer : IDisposable
                     wakeAndFrame[0] = wakeOnly[0];
                     wakeAndFrame[1] = _windows[0].Pacer.FrameWaitHandle;
                     Native.MsgWaitForMultipleObjects(2, wakeAndFrame, false, 100, Native.QS_ALLINPUT);
-                    if (HalfRate || cfg.LowPower)
+                    if (cfg.LowPower)
                     {
-                        // Skip every other refresh (~30 fps on a 60 Hz screen): cuts GPU load about 3x on integrated graphics. Always on; Battery Saver kept for clarity.
+                        // Light mode (default, or Battery Saver): skip every other refresh, ~30 fps on a 60 Hz screen.
                         Native.MsgWaitForMultipleObjects(2, wakeAndFrame, false, 40, Native.QS_ALLINPUT);
                     }
                     break;

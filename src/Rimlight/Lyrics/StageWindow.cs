@@ -146,8 +146,8 @@ public sealed class StageWindow : Window, ILyricsDisplay
 
     // ======================================================================================= ALBUM
 
-    private readonly Image _art = new() { Stretch = Stretch.UniformToFill, RenderTransformOrigin = new Point(0.5, 0.5) };
-    private readonly ScaleTransform _artScale = new(1.1, 1.1);
+    private readonly Image _art = new() { Stretch = Stretch.UniformToFill };
+    private readonly ScaleTransform _artScale = new(1.0, 1.0);
     private readonly TranslateTransform _artMove = new();
     private readonly Image _artBlur = new() { Stretch = Stretch.UniformToFill };
     private readonly WrapPanel _current = new() { HorizontalAlignment = HorizontalAlignment.Left };
@@ -157,21 +157,70 @@ public sealed class StageWindow : Window, ILyricsDisplay
     private readonly TextBlock _tagTitle = new() { FontFamily = Display, FontWeight = FontWeights.Bold, FontSize = 18, Foreground = Brushes.White };
     private readonly TextBlock _tagArtist = new() { FontFamily = Display, FontSize = 14, Foreground = Brushes.White, Opacity = 0.75 };
 
+    private readonly TranslateTransform _bgMove = new(), _washAMove = new(), _washBMove = new();
+    private readonly Border _washA = new(), _washB = new();
+    private DropShadowEffect? _cardGlow, _albumTextGlow;
+
+    /// <summary>Tints the colour washes, card glow and lyric glow with the current song colours.</summary>
+    private void SetAlbumColors()
+    {
+        _washA.Background = new RadialGradientBrush(Color.FromArgb(0xB0, _a.R, _a.G, _a.B), Color.FromArgb(0, _a.R, _a.G, _a.B)) { RadiusX = 0.55, RadiusY = 0.55 };
+        _washB.Background = new RadialGradientBrush(Color.FromArgb(0xB0, _b.R, _b.G, _b.B), Color.FromArgb(0, _b.R, _b.G, _b.B)) { RadiusX = 0.55, RadiusY = 0.55 };
+        if (_cardGlow is not null) _cardGlow.Color = _a;
+        if (_albumTextGlow is not null) _albumTextGlow.Color = _a;
+    }
+
     private void BuildAlbum()
     {
+        // Backdrop: the cover's own colours, soft and dark. The sharp cover sits on top as a card at its
+        // natural size, so it is never stretched to the screen (that is what made it look blurry before).
+        _artBlur.RenderTransformOrigin = new Point(0.5, 0.5);
+        _artBlur.Opacity = 1;
+        _artBlur.RenderTransform = new TransformGroup { Children = { new ScaleTransform(1.15, 1.15), _bgMove } };
+        Drift(_bgMove, _w * 0.03 * M, _h * 0.03 * M, 37, 29);
         _root.Children.Add(_artBlur);
-        _art.RenderTransform = new TransformGroup { Children = { _artScale, _artMove } };
-        RenderOptions.SetBitmapScalingMode(_art, BitmapScalingMode.HighQuality);
-        _root.Children.Add(_art);
+        // Two big drifting washes of the song's colours: the backdrop slowly breathes instead of sitting still.
+        foreach (var (wash, move, w, h, sx, sy) in new[]
+        {
+            (_washA, _washAMove, _w * 0.9, _h * 1.1, 41.0, 33.0),
+            (_washB, _washBMove, _w * 0.8, _h * 1.0, 31.0, 47.0),
+        })
+        {
+            wash.Width = w; wash.Height = h; wash.IsHitTestVisible = false;
+            wash.RenderTransform = move;
+            wash.Opacity = 0.55;
+            Drift(move, _w * 0.18 * M, _h * 0.12 * M, sx, sy);
+            wash.BeginAnimation(OpacityProperty, new DoubleAnimation(0.35, 0.65, TimeSpan.FromSeconds(sx / 4)) { AutoReverse = true, RepeatBehavior = RepeatBehavior.Forever, EasingFunction = new SineEase() });
+            _root.Children.Add(wash);
+        }
+        _washA.HorizontalAlignment = HorizontalAlignment.Left;  _washA.VerticalAlignment = VerticalAlignment.Top;
+        _washB.HorizontalAlignment = HorizontalAlignment.Right; _washB.VerticalAlignment = VerticalAlignment.Bottom;
+        SetAlbumColors();
         _root.Children.Add(new Border
         {
             Background = new LinearGradientBrush(new GradientStopCollection
             {
-                new(Color.FromArgb(0x20, 0, 0, 0), 0), new(Color.FromArgb(0x40, 0, 0, 0), 0.45), new(Color.FromArgb(0xC8, 0, 0, 0), 1),
+                new(Color.FromArgb(0x38, 0, 0, 0), 0), new(Color.FromArgb(0x58, 0, 0, 0), 0.5), new(Color.FromArgb(0xC0, 0, 0, 0), 1),
             }, 90),
         });
-        _root.Children.Add(new Border { Background = new RadialGradientBrush(Colors.Transparent, Color.FromArgb(0x90, 0, 0, 0)) { RadiusX = 0.75, RadiusY = 0.75 } });
-        Drift(_artMove, _w * 0.025 * M, _h * 0.02 * M, 23, 31);
+        _root.Children.Add(new Border { Background = new RadialGradientBrush(Colors.Transparent, Color.FromArgb(0x80, 0, 0, 0)) { RadiusX = 0.8, RadiusY = 0.8 } });
+
+        double card = Math.Min(_h * 0.56, _w * 0.3);
+        _art.Clip = new RectangleGeometry(new Rect(0, 0, card, card), card * 0.04, card * 0.04);
+        RenderOptions.SetBitmapScalingMode(_art, BitmapScalingMode.HighQuality);
+        // The shadow lives on a wrapper: a Clip on the image itself would cut the shadow off.
+        _root.Children.Add(new Border
+        {
+            Width = card, Height = card,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(0, 0, _w * 0.09, _h * 0.04),
+            RenderTransformOrigin = new Point(0.5, 0.5),
+            RenderTransform = new TransformGroup { Children = { _artScale, _artMove } },
+            Effect = _cardGlow = new DropShadowEffect { Color = _a, BlurRadius = card * 0.3, ShadowDepth = 0, Opacity = 0.75 },
+            Child = _art,
+        });
+        Drift(_artMove, _w * 0.006 * M, _h * 0.008 * M, 23, 31);
 
         double f = WordSize;
         var textGrid = new Grid { Children = { _current, _outgoing } };
@@ -185,7 +234,7 @@ public sealed class StageWindow : Window, ILyricsDisplay
             HorizontalAlignment = HorizontalAlignment.Left,
             Margin = new Thickness(_w * 0.06, 0, 0, _h * 0.12),
             Children = { textGrid, _next },
-            Effect = new DropShadowEffect { Color = Colors.Black, BlurRadius = 30, ShadowDepth = 0, Opacity = 0.7 },
+            Effect = _albumTextGlow = new DropShadowEffect { Color = _a, BlurRadius = 36, ShadowDepth = 0, Opacity = 0.6 },
         });
         _root.Children.Add(new StackPanel
         {
@@ -203,10 +252,12 @@ public sealed class StageWindow : Window, ILyricsDisplay
         var words = _line!.Words;
         double f = WordSize;
         bool chip = i == words.Length - 1 && words.Length > 1;
-        double size = chip ? f * 1.1 : words[i].Length <= 3 ? f * 0.78 : f;
-        // Mixed weights: little words light, others bold, the key word heaviest.
-        var weight = chip ? FontWeights.Black : words[i].Trim(',', '.', '!', '?', '\'').Length <= 3 ? FontWeights.Light : FontWeights.Bold;
+        // One even size and weight for every word (mixed Light/Black looked patchy); only the last word gets a chip.
+        double size = f * 0.92;
+        var weight = FontWeights.SemiBold;
         var tb = new TextBlock { Text = words[i], FontFamily = Display, FontWeight = weight, FontSize = size, Foreground = Brushes.White };
+        TextOptions.SetTextFormattingMode(tb, TextFormattingMode.Ideal);   // smooth, unhinted glyphs while they move
+        TextOptions.SetTextRenderingMode(tb, TextRenderingMode.Grayscale);
         var b = new Border { Child = tb, Margin = new Thickness(f * 0.06, 0, f * 0.14, f * 0.02), CornerRadius = new CornerRadius(f * 0.14), RenderTransformOrigin = new Point(0.3, 0.7) };
         if (chip)
         {
@@ -215,7 +266,7 @@ public sealed class StageWindow : Window, ILyricsDisplay
             tb.Foreground = Luma(_a) > 0.55 ? new SolidColorBrush(Color.FromRgb(0x10, 0x10, 0x12)) : Brushes.White;
         }
         _current.Children.Add(b);
-        FlyIn(b, 1.8, 22, f * 0.5, 320);
+        FlyIn(b, 1.12, 10, f * 0.22, 420, soft: true);
     }
 
     private void SendAlbumLineAway()
@@ -583,7 +634,7 @@ public sealed class StageWindow : Window, ILyricsDisplay
         }
         else
         {
-            var note = new TextBlock { Text = "â™ª  â™ª  â™ª", FontFamily = Display, FontSize = f * 0.8, Foreground = _kInk };
+            var note = new TextBlock { Text = "♪  ♪  ♪", FontFamily = Display, FontSize = f * 0.8, Foreground = _kInk };
             note.BeginAnimation(OpacityProperty, new DoubleAnimation(0.25, 0.85, TimeSpan.FromSeconds(1.1)) { AutoReverse = true, RepeatBehavior = RepeatBehavior.Forever });
             _kCurrent.Children.Add(note);
             _kEcho.BeginAnimation(OpacityProperty, new DoubleAnimation(0, TimeSpan.FromMilliseconds(500)));
@@ -1011,6 +1062,7 @@ public sealed class StageWindow : Window, ILyricsDisplay
     public void SetColors(Color a, Color b)
     {
         _a = a; _b = b;
+        if (_look == Look.Album) SetAlbumColors();
         if (_chat is not null)
         {
         }
@@ -1073,7 +1125,7 @@ public sealed class StageWindow : Window, ILyricsDisplay
     {
         switch (_look)
         {
-            case Look.Album: Punch(_artScale, 1.1, 0.025 * M, flash); break;
+            case Look.Album: Punch(_artScale, 1.0, 0.03 * M, flash); break;
             case Look.Picture:
                 Punch(_picScale, 1.08, 0.04 * M, flash); // smooth zoom punch on strong beats; lyrics stay steady
                 if (_keyIndex >= 0 && _keyIndex < _kCurrent.Children.Count && _kCurrent.Children[_keyIndex] is TextBlock { Effect: DropShadowEffect g })
@@ -1145,7 +1197,7 @@ public sealed class StageWindow : Window, ILyricsDisplay
 
     private void ShowGapNote()
     {
-        var note = new TextBlock { Text = "â™ª", FontFamily = Display, FontSize = _look == Look.Album ? WordSize : WordSize * 3, Foreground = new SolidColorBrush(_a) };
+        var note = new TextBlock { Text = "♪", FontFamily = Display, FontSize = _look == Look.Album ? WordSize : WordSize * 3, Foreground = new SolidColorBrush(_a) };
         note.BeginAnimation(OpacityProperty, new DoubleAnimation(0.25, 0.9, TimeSpan.FromSeconds(1.1)) { AutoReverse = true, RepeatBehavior = RepeatBehavior.Forever });
         if (_look == Look.Album) _current.Children.Add(note);
         else { Canvas.SetLeft(note, _w / 2 - WordSize); Canvas.SetTop(note, _h * 0.42); _active.Children.Add(note); }
@@ -1162,16 +1214,16 @@ public sealed class StageWindow : Window, ILyricsDisplay
         t.BeginAnimation(TranslateTransform.YProperty, Loop(-dy, dy, sy));
     }
 
-    private static void FlyIn(FrameworkElement el, double scaleFrom, double blur, double rise, int ms)
+    private static void FlyIn(FrameworkElement el, double scaleFrom, double blur, double rise, int ms, bool soft = false)
     {
         var dur = TimeSpan.FromMilliseconds(ms);
-        var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
+        var ease = soft ? (IEasingFunction)new QuinticEase { EasingMode = EasingMode.EaseOut } : new CubicEase { EasingMode = EasingMode.EaseOut };
         var scale = new ScaleTransform(1, 1);
         var move = new TranslateTransform();
         el.RenderTransform = new TransformGroup { Children = { scale, move } };
         el.Opacity = 0;
         el.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, dur) { EasingFunction = ease });
-        var s = new DoubleAnimation(scaleFrom, 1, dur) { EasingFunction = new BackEase { EasingMode = EasingMode.EaseOut, Amplitude = 0.3 } };
+        var s = new DoubleAnimation(scaleFrom, 1, dur) { EasingFunction = soft ? ease : new BackEase { EasingMode = EasingMode.EaseOut, Amplitude = 0.3 } }; // soft = no overshoot wobble
         scale.BeginAnimation(ScaleTransform.ScaleXProperty, s);
         scale.BeginAnimation(ScaleTransform.ScaleYProperty, s);
         move.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(rise, 0, dur) { EasingFunction = ease });

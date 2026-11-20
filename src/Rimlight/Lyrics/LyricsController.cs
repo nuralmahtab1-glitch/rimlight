@@ -348,7 +348,7 @@ public sealed class LyricsController : IDisposable
         var (sharp, card, screen) = await Task.Run(() =>
         {
             int n = MediaSessionWatcher.LargeArtSize;
-            var s = BitmapSource.Create(n, n, 96, 96, PixelFormats.Pbgra32, null, bgra, n * 4);
+            var s = BitmapSource.Create(n, n, 96, 96, PixelFormats.Pbgra32, null, ArtBlur.Sharpen(bgra, n), n * 4);
             s.Freeze();
             return (s, ArtBlur.Make(bgra, n, 40, 3, 0.45), ArtBlur.Make(bgra, n, 32, 3, 0.7));
         });
@@ -369,6 +369,29 @@ public sealed class LyricsController : IDisposable
 /// <summary>Cheap "frosted glass" blur: downsample, box-blur, darken. The GPU upscales it smoothly.</summary>
 internal static class ArtBlur
 {
+    /// <summary>
+    /// Unsharp mask: covers from media apps are often small and get scaled up, which softens them.
+    /// Adds back edge contrast (3x3 blur subtracted) so text and detail look crisp. Returns a new array.
+    /// </summary>
+    public static byte[] Sharpen(byte[] bgra, int n, float amount = 0.7f)
+    {
+        var o = new byte[bgra.Length];
+        Array.Copy(bgra, o, bgra.Length);
+        for (int y = 1; y < n - 1; y++)
+        for (int x = 1; x < n - 1; x++)
+        {
+            int i = (y * n + x) * 4;
+            for (int c = 0; c < 3; c++)
+            {
+                int sum = bgra[i + c - 4] + bgra[i + c + 4] + bgra[i + c - n * 4] + bgra[i + c + n * 4]
+                          + 4 * bgra[i + c];
+                float blur = sum / 8f;
+                o[i + c] = (byte)Math.Clamp(bgra[i + c] + amount * (bgra[i + c] - blur), 0, Math.Min(255, bgra[i + 3] == 0 ? 0 : (int)bgra[i + 3]));
+            }
+        }
+        return o;
+    }
+
     public static BitmapSource Make(byte[] bgra, int size, int small, int radius, double darken)
     {
         // 1) Downsample by block averaging.

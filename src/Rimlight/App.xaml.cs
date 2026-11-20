@@ -428,7 +428,7 @@ public partial class App : Application
             Ambient = s.Ambient,
             ColorFadeSeconds = _fadeSeconds,
             Suspended = IsSuspended,
-            LowPower = _system.IsEnergySaver,
+            LowPower = _system.IsEnergySaver || !s.SmoothMotion,
         };
     }
 

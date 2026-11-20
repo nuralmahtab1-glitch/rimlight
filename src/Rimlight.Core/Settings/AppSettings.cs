@@ -24,6 +24,10 @@ public enum LyricsStyle
     Constellation,
     /// <summary>Your own picture as a living background, karaoke lyrics in its empty side.</summary>
     Picture,
+    /// <summary>Black screen, a glowing frame that drifts and changes colour, each line pops up as a chat bubble.</summary>
+    ChatBlack,
+    /// <summary>Your picture as a living background, each line pops up as a blue chat bubble over it.</summary>
+    ChatPicture,
 }
 
 [JsonConverter(typeof(JsonStringEnumConverter<LyricsPlacement>))]

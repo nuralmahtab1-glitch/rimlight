@@ -65,7 +65,7 @@ public sealed class LyricsController : IDisposable
         {
             LyricsStyle.Album or LyricsStyle.FullScreen => StageWindow.Look.Album,
             LyricsStyle.Constellation => StageWindow.Look.Constellation,
-            LyricsStyle.Picture => StageWindow.Look.Picture,
+            LyricsStyle.Picture or LyricsStyle.ChatPicture or LyricsStyle.ChatBlack => StageWindow.Look.Picture,
             _ => null,
         };
         if (look is { } l && _enabled)
@@ -74,12 +74,12 @@ public sealed class LyricsController : IDisposable
             StageWindow.PictureBoxPlacement = s.LyricsBoxX < 0 ? null : new System.Windows.Point(s.LyricsBoxX, s.LyricsBoxY);
             StageWindow.MotionFactor = StageWindow.MotionFromLevel(s.BackgroundMotion);
             string placeKey = (s.LyricsBoxX < 0 ? "auto" : $"{s.LyricsBoxX:0.00},{s.LyricsBoxY:0.00}") + $"|m{Math.Round(s.BackgroundMotion)}";
-            var key = (l, s.LyricsOnTop, Math.Round(s.LyricsSize), (l == StageWindow.Look.Picture ? pic : "") + "|" + placeKey);
+            var key = (l, s.LyricsOnTop, Math.Round(s.LyricsSize), (l == StageWindow.Look.Picture ? pic : "") + "|" + placeKey + (s.LyricsStyle == LyricsStyle.ChatPicture ? "|chat" : s.LyricsStyle == LyricsStyle.ChatBlack ? "|black" : ""));
             if (_stageKey != key)
             {
                 // Recreate: transparency/wallpaper mode can only be chosen when a window is created.
                 _stage?.Close();
-                _stage = new StageWindow(l, s.LyricsOnTop, s.LyricsSize, pic);
+                _stage = new StageWindow(l, s.LyricsOnTop, s.LyricsSize, pic, s.LyricsStyle is LyricsStyle.ChatPicture or LyricsStyle.ChatBlack, s.LyricsStyle == LyricsStyle.ChatBlack);
                 _stage.SetColors(_colA, _colB);
                 _stage.SetArt(_artSharp, _artBlurScreen);
                 _stage.SetTrack(_track?.Title, _track?.Artist);

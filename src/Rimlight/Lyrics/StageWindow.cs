@@ -66,9 +66,17 @@ public sealed class StageWindow : Window, ILyricsDisplay
         return (0.34 * s, 0.062 * s * 4.2);
     }
 
-    public StageWindow(Look look, bool onTop, double sizeLevel, string? picturePath = null)
+    private ChatBubbleStack? _chat;
+    private readonly bool _blackScreen;
+    private DropShadowEffect? _frameGlow;
+
+    /// <param name="chatBubbles">Picture look only: lyrics as chat bubbles.</param>
+    /// <param name="blackScreen">With chatBubbles: plain black screen instead of the picture.</param>
+    public StageWindow(Look look, bool onTop, double sizeLevel, string? picturePath = null, bool chatBubbles = false, bool blackScreen = false)
     {
         _look = look;
+        _blackScreen = blackScreen;
+        if (chatBubbles && look == Look.Picture) _chat = new ChatBubbleStack();
         _onTop = onTop;
         _size = SizeFactor(sizeLevel);
         _boxFrac = PictureBoxFraction(sizeLevel);
@@ -384,6 +392,36 @@ public sealed class StageWindow : Window, ILyricsDisplay
             _intro.Margin = new Thickness(left, 0, 0, 0);
         }
 
+        // Chat looks: bubbles replace the neon karaoke words; a moving frame of light runs around the screen.
+        if (_chat is not null)
+        {
+            _karaoke.Visibility = Visibility.Collapsed;
+            _kEcho.Visibility = Visibility.Collapsed;
+            if (_blackScreen)
+            {
+                foreach (UIElement c in _root.Children) c.Visibility = Visibility.Collapsed;
+                _root.Children.Insert(0, new Border { Background = Brushes.Black });
+            }
+            AddMovingFrame(neon: _blackScreen);
+
+            _chat.Configure(blue: !_blackScreen, Math.Max(1.05, _h / 1080.0 * 1.6), _w * (_blackScreen ? 0.4 : _boxFrac.W));
+            _chat.SetColor(_neonA ?? _a);
+            _chat.Width = _w * (_blackScreen ? 0.4 : _boxFrac.W);
+            _chat.Height = _h * (_blackScreen ? 0.34 : _boxFrac.H);
+            if (_blackScreen)
+            {
+                _chat.HorizontalAlignment = HorizontalAlignment.Center;
+                _chat.VerticalAlignment = VerticalAlignment.Center;
+            }
+            else
+            {
+                _chat.HorizontalAlignment = _karaoke.HorizontalAlignment;
+                _chat.VerticalAlignment = _karaoke.VerticalAlignment;
+                _chat.Margin = _karaoke.Margin;
+            }
+            _root.Children.Add(_chat);
+        }
+
         // Song intro card (big title + artist for a few seconds when a song starts).
         _introTitle.FontFamily = _introArtist.FontFamily = Display;
         _introTitle.FontWeight = FontWeights.Black; _introTitle.FontSize = f * 1.15;
@@ -457,6 +495,42 @@ public sealed class StageWindow : Window, ILyricsDisplay
     /// Palette of the picture (OKLab k-means), then pick the two colours that belong to the picture but stand
     /// furthest from its overall/background colour â€” so the neon matches the art and still pops off it.
     /// </summary>
+    /// <summary>
+    /// A thin frame of light just inside the screen edge: its colours circle round, and the whole frame
+    /// sways, tilts and breathes slowly (like a glowing screen floating in the dark). Neon colours for the black
+    /// screen, soft white for the picture.
+    /// </summary>
+    private void AddMovingFrame(bool neon)
+    {
+        Color c1 = neon ? (_neonA ?? _a) : Colors.White;
+        Color c2 = neon ? (_neonB ?? _b) : Color.FromRgb(0xC8, 0xC8, 0xD2);
+        var spin = new RotateTransform(0, 0.5, 0.5);
+        spin.BeginAnimation(RotateTransform.AngleProperty, new DoubleAnimation(0, 360, TimeSpan.FromSeconds(9)) { RepeatBehavior = RepeatBehavior.Forever });
+        var brush = new LinearGradientBrush(new GradientStopCollection { new GradientStop(c1, 0), new GradientStop(c2, 0.35), new GradientStop(Colors.Transparent, 0.5), new GradientStop(c2, 0.65), new GradientStop(c1, 1) }, new Point(0, 0), new Point(1, 1))
+        { RelativeTransform = spin };
+        _frameGlow = new DropShadowEffect { Color = c1, BlurRadius = 30, ShadowDepth = 0, Opacity = neon ? 0.9 : 0.5 };
+
+        var scale = new ScaleTransform(1, 1);
+        scale.BeginAnimation(ScaleTransform.ScaleXProperty, Loop(0.972, 0.998, 7));
+        scale.BeginAnimation(ScaleTransform.ScaleYProperty, Loop(0.975, 0.998, 8.5));
+        var tilt = new RotateTransform();
+        tilt.BeginAnimation(RotateTransform.AngleProperty, Loop(-0.9 * M, 0.9 * M, 11));
+        var move = new TranslateTransform();
+        Drift(move, _w * 0.012 * M, _h * 0.012 * M, 17, 21);
+
+        _root.Children.Add(new Border
+        {
+            Margin = new Thickness(_w * 0.018),
+            BorderThickness = new Thickness(neon ? 3 : 2),
+            CornerRadius = new CornerRadius(14),
+            BorderBrush = brush,
+            Effect = _frameGlow,
+            IsHitTestVisible = false,
+            RenderTransformOrigin = new Point(0.5, 0.5),
+            RenderTransform = new TransformGroup { Children = { scale, tilt, move } },
+        });
+    }
+
     private void PickNeonFromPicture(BitmapSource img)
     {
         try
@@ -1038,6 +1112,7 @@ public sealed class StageWindow : Window, ILyricsDisplay
                 if (_keyIndex >= 0 && _keyIndex < _kCurrent.Children.Count && _kCurrent.Children[_keyIndex] is TextBlock { Effect: DropShadowEffect g })
                     g.BlurRadius = 26 + 22 * flash;                           // star word's neon buzzes
                 if (_particles is not null) _particles.Opacity = 0.65 + 0.35 * flash;
+                if (_frameGlow is not null) { _frameGlow.BlurRadius = 26 + 26 * flash; _frameGlow.Opacity = Math.Min(1, 0.55 + 0.45 * flash); }
                 break;
             default:
                 if (_nodes.Count > 0) _nodes[^1].Marker.Opacity = 0.65 + 0.35 * flash;
@@ -1067,6 +1142,7 @@ public sealed class StageWindow : Window, ILyricsDisplay
 
     public void ShowLine(LyricLine? line, int wordsVisible, LyricLine? next, bool gap)
     {
+        if (_chat is not null) { _chat.ShowLine(line, wordsVisible, gap || line is null || line.Words.Length == 0); return; }
         if (!ReferenceEquals(line, _line) || gap != _gap)
         {
             _line = line; _gap = gap; _wordsShown = 0; _nextLine = next;

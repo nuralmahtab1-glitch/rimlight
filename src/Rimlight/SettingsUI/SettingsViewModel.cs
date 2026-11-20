@@ -283,15 +283,17 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         (LyricsStyle.Picture, "Picture", "Your picture comes alive (drift, floating lights), karaoke lyrics in its empty side"),
         (LyricsStyle.Album, "Album wallpaper", "The album cover fills your screen and moves to the beat, giant lyrics over it"),
         (LyricsStyle.Constellation, "Constellation", "Words appear as stars joined by lines, the current word glowing"),
+        (LyricsStyle.ChatBlack, "Chat screen", "Black screen with a moving frame of light, each line pops up as a message bubble"),
+        (LyricsStyle.ChatPicture, "Chat + picture", "Your picture drifts on screen, each line pops up as a blue message bubble over it"),
         (LyricsStyle.Card, "Card", "Floating glass card, words fly in"),
         (LyricsStyle.Bold, "Bold", "Big kinetic words, no background"),
         (LyricsStyle.Subtitle, "Subtitle", "One simple line, good while working"),
     ];
 
     /// <summary>Album wallpaper and Constellation fill the screen; the others are small overlays.</summary>
-    public bool IsStageStyle => _s.LyricsStyle is LyricsStyle.Album or LyricsStyle.FullScreen or LyricsStyle.Constellation or LyricsStyle.Picture;
+    public bool IsStageStyle => _s.LyricsStyle is LyricsStyle.Album or LyricsStyle.FullScreen or LyricsStyle.Constellation or LyricsStyle.Picture or LyricsStyle.ChatPicture or LyricsStyle.ChatBlack;
 
-    public bool IsPictureStyle => _s.LyricsStyle == LyricsStyle.Picture;
+    public bool IsPictureStyle => _s.LyricsStyle is LyricsStyle.Picture or LyricsStyle.ChatPicture;
 
     public string LyricsPictureName => string.IsNullOrWhiteSpace(_s.LyricsPicture) ? "Default picture" : System.IO.Path.GetFileName(_s.LyricsPicture);
 

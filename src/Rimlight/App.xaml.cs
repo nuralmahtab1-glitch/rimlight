@@ -251,7 +251,7 @@ public partial class App : Application
         _toggleItem.Header = _settings.Active ? "Turn light off" : "Turn light on";
         _lyricsItem.IsChecked = _settings.ShowLyrics;
         _lyricsTopItem.IsChecked = _settings.LyricsOnTop;
-        _lyricsTopItem.IsEnabled = _settings.ShowLyrics && _settings.LyricsStyle is LyricsStyle.Album or LyricsStyle.FullScreen or LyricsStyle.Constellation;
+        _lyricsTopItem.IsEnabled = _settings.ShowLyrics && _settings.LyricsStyle is LyricsStyle.Album or LyricsStyle.FullScreen or LyricsStyle.Constellation or LyricsStyle.Picture or LyricsStyle.ChatPicture or LyricsStyle.ChatBlack;
         _tray.ToolTipText = _settings.Active ? "Rimlight — on" : "Rimlight — off";
     }
 
